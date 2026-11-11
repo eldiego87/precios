@@ -363,3 +363,5 @@ button, input { font: inherit; color: inherit; }
   background: var(--acento-suave); color: var(--texto); font-weight: 600; text-decoration: none; cursor: grab;
 }
 kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--fondo); }
+.alternativa { margin-top: 10px; background: var(--fondo); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.alternativa ol { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }

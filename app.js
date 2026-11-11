@@ -392,6 +392,15 @@ function abrirAyudaArca() {
   $('dlg-arca').showModal();
 }
 $('btn-marcador').addEventListener('click', abrirAyudaArca);
+$('btn-copiar-marcador').addEventListener('click', async () => {
+  const codigo = codigoMarcador();
+  try {
+    await navigator.clipboard.writeText(codigo);
+    aviso('Código copiado. Ahora: clic derecho en la barra de favoritos → Agregar página… y pegalo en URL.');
+  } catch {
+    prompt('Copiá este código (Ctrl+C) y pegalo en el campo URL del marcador:', codigo);
+  }
+});
 $('link-marcador').addEventListener('click', (e) => { e.preventDefault(); aviso('Arrastralo a la barra de favoritos (no hace falta tocarlo acá).'); });
 
 /** Recalcula los importes sin redibujar los campos (para no perder el foco). */
