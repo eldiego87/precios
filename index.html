@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lista de precios</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <!-- Pantallas simples (sin sesión, sin configurar, cargando) -->
+  <main id="pantalla-mensaje" class="pantalla-mensaje">
+    <div class="tarjeta-mensaje">
+      <h1>Lista de precios</h1>
+      <p id="mensaje-texto">Cargando…</p>
+      <button id="btn-entrar" class="btn primario" hidden>Iniciar sesión con Google</button>
+    </div>
+  </main>
+
+  <!-- Aplicación -->
+  <div id="app" hidden>
+    <header class="barra">
+      <h1 class="titulo">Lista de precios</h1>
+      <button id="btn-cotizacion" class="cotizacion" title="Cambiar la cotización del dólar">
+        <span class="cot-etiqueta">Dólar</span>
+        <span id="cot-valor" class="cot-valor">—</span>
+      </button>
+      <details class="menu">
+        <summary class="btn icono" aria-label="Menú">⋯</summary>
+        <div class="menu-lista">
+          <button id="btn-nuevo-menu">Nuevo producto</button>
+          <button id="btn-importar">Importar desde Excel…</button>
+          <button id="btn-exportar">Descargar Excel (copia)</button>
+          <hr>
+          <span id="usuario-email" class="menu-info"></span>
+          <button id="btn-salir">Cerrar sesión</button>
+        </div>
+      </details>
+    </header>
+
+    <section class="buscador">
+      <input id="busqueda" type="search" placeholder="Buscar por código, nombre, categoría o proveedor…" autocomplete="off" spellcheck="false">
+      <div id="filtros" class="filtros" role="tablist"></div>
+    </section>
+
+    <p id="resumen" class="resumen"></p>
+    <ul id="lista" class="lista"></ul>
+    <div id="vacio" class="vacio" hidden></div>
+
+    <button id="btn-nuevo" class="flotante" aria-label="Nuevo producto">+ Nuevo</button>
+  </div>
+
+  <!-- Editor de producto -->
+  <dialog id="dlg-producto" class="dialogo">
+    <form id="form-producto" method="dialog">
+      <h2 id="prod-titulo">Producto</h2>
+      <div class="grilla">
+        <label>Código <input name="codigo" required autocomplete="off"></label>
+        <label>Categoría <input name="categoria" list="lista-categorias" autocomplete="off"></label>
+        <label class="ancho">Descripción <input name="descripcion" required autocomplete="off"></label>
+        <label class="ancho">Proveedor <input name="proveedor" list="lista-proveedores" autocomplete="off"></label>
+      </div>
+
+      <fieldset class="moneda">
+        <legend>Precio</legend>
+        <label class="opcion"><input type="radio" name="moneda" value="USD" checked> En dólares</label>
+        <label class="opcion"><input type="radio" name="moneda" value="ARS"> Fijo en pesos</label>
+      </fieldset>
+
+      <div class="grilla" id="campos-usd">
+        <label>Costo US$ <input name="costoUSD" inputmode="decimal" autocomplete="off"></label>
+        <label>Margen (×) <input name="margen" inputmode="decimal" autocomplete="off" placeholder="ej. 1,5"></label>
+        <label class="ancho">Precio US$ sin IVA <input name="precioUSD" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <div class="grilla" id="campos-ars" hidden>
+        <label class="ancho">Precio $ sin IVA <input name="precioARS" inputmode="decimal" autocomplete="off"></label>
+      </div>
+
+      <div class="vista-precio">
+        <span>Precio final (con 21%)</span>
+        <strong id="prod-final">$ 0,00</strong>
+        <small id="prod-detalle"></small>
+      </div>
+
+      <label class="opcion"><input type="checkbox" name="favorito"> ★ Favorito (aparece en el filtro de favoritos)</label>
+
+      <p id="prod-error" class="error" hidden></p>
+      <div class="acciones">
+        <button type="button" id="btn-borrar" class="btn peligro">Borrar</button>
+        <span class="espacio"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Cotización -->
+  <dialog id="dlg-cotizacion" class="dialogo chico">
+    <form id="form-cotizacion" method="dialog">
+      <h2>Cotización del dólar</h2>
+      <label>1 US$ = $ <input name="cotizacion" inputmode="decimal" required autocomplete="off"></label>
+      <p class="nota" id="cot-nota"></p>
+      <div class="acciones">
+        <span class="espacio"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn primario">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Importar -->
+  <dialog id="dlg-importar" class="dialogo">
+    <form id="form-importar" method="dialog">
+      <h2>Importar desde Excel</h2>
+      <p class="nota">Elegí el archivo .xlsx descargado de Google Sheets. Primero vas a ver un resumen; no se guarda nada hasta que confirmes.</p>
+      <input id="archivo" type="file" accept=".xlsx,.xls,.ods">
+      <div id="imp-resumen" class="imp-resumen" hidden></div>
+      <p id="imp-error" class="error" hidden></p>
+      <div class="acciones">
+        <span class="espacio"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" id="btn-confirmar-importar" class="btn primario" disabled>Importar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="lista-categorias"></datalist>
+  <datalist id="lista-proveedores"></datalist>
+  <div id="aviso" class="aviso" role="status" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
