@@ -455,3 +455,11 @@ code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; b
   .abono-fila { grid-template-columns: 1fr 1fr; }
   .abono-vista { grid-template-columns: 1fr; }
 }
+
+/* ---------- Reordenar ítems de la cotización ---------- */
+.celda-cant { display: flex; align-items: center; gap: 4px; }
+.arrastre { cursor: grab; color: var(--suave); font-size: 18px; line-height: 1; padding: 4px 2px; user-select: none; touch-action: none; }
+.arrastre:hover { color: var(--acento); }
+.tabla-cot tr.arrastrando { background: var(--acento-suave); box-shadow: 0 2px 10px rgb(0 0 0 / 15%); }
+.tabla-cot tr.arrastrando .arrastre { cursor: grabbing; color: var(--acento); }
+@media (max-width: 900px) { .arrastre { font-size: 24px; padding: 6px 4px; } }

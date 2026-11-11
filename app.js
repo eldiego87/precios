@@ -470,7 +470,7 @@ function dibujarCotizador() {
     const c = calcularLinea(l);
     const extra = [c.codigo, nombreUnidad(c.unidad), l.fija && !l.productoId ? 'ítem provisorio' : (l.fija ? 'precio guardado' : '')].filter(Boolean).join(' · ');
     return `<tr data-id="${esc(l.id)}">
-      <td><input class="cantidad" data-cantidad value="${esc(paraCampo(l.cantidad))}" inputmode="decimal" aria-label="Cantidad"></td>
+      <td><div class="celda-cant"><span class="arrastre" data-arrastre title="Arrastrá para subir o bajar" aria-label="Mover">⠿</span><input class="cantidad" data-cantidad value="${esc(paraCampo(l.cantidad))}" inputmode="decimal" aria-label="Cantidad"></div></td>
       <td class="item-cot">${esc(c.descripcion)}<small>${esc(extra)}</small></td>
       <td class="num" data-costo></td>
       <td class="num" data-venta></td>
@@ -736,6 +736,41 @@ $('cotizador').addEventListener('click', (e) => {
   if (t.closest('[data-copiar-cuit]')) return copiarCuit(estado.cotCliente?.cuit);
   if (t.closest('[data-quitar]')) quitarDelCotizador(t.closest('tr').dataset.id);
 });
+
+// ---- Reordenar ítems arrastrando la manija ⠿ (mouse o dedo: pointer events)
+let arrastre = null;
+$('cotizador').addEventListener('pointerdown', (e) => {
+  const manija = e.target.closest('[data-arrastre]');
+  if (!manija) return;
+  e.preventDefault();
+  const tr = manija.closest('tr');
+  try { manija.setPointerCapture(e.pointerId); } catch { /* sin captura: igual funciona dentro del panel */ }
+  tr.classList.add('arrastrando');
+  arrastre = { tr, tbody: tr.parentNode };
+});
+$('cotizador').addEventListener('pointermove', (e) => {
+  if (!arrastre) return;
+  const { tr, tbody } = arrastre;
+  const otras = [...tbody.children].filter((f) => f !== tr);
+  const antesDe = otras.find((f) => { const r = f.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+  if (antesDe) { if (tr.nextElementSibling !== antesDe) tbody.insertBefore(tr, antesDe); }
+  else if (tbody.lastElementChild !== tr) tbody.appendChild(tr);
+  // Si la lista es larga, desplazar la columna al acercarse a los bordes.
+  const col = $('cotizador').closest('.cotizador');
+  const r = col.getBoundingClientRect();
+  if (e.clientY < r.top + 40) col.scrollTop -= 12; else if (e.clientY > r.bottom - 40) col.scrollTop += 12;
+});
+function terminarArrastre() {
+  if (!arrastre) return;
+  const orden = [...arrastre.tbody.children].map((t) => t.dataset.id);
+  arrastre.tr.classList.remove('arrastrando');
+  arrastre = null;
+  const antes = estado.cotizador.map((l) => l.id).join('|');
+  estado.cotizador.sort((a, b) => orden.indexOf(a.id) - orden.indexOf(b.id));
+  if (estado.cotizador.map((l) => l.id).join('|') !== antes) { huboCambios(); dibujarCotizador(); }
+}
+$('cotizador').addEventListener('pointerup', terminarArrastre);
+$('cotizador').addEventListener('pointercancel', terminarArrastre);
 
 // Celular: la cotización se abre en pantalla completa. Se agrega un paso al historial
 // para que el botón "atrás" del teléfono la cierre en vez de salir de la página.
