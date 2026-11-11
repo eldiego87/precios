@@ -22,6 +22,8 @@ const estado = {
   cotEditando: null,
   cotCambios: false,
   cotFecha: null, // fecha de factura AAAA-MM-DD
+  cotCambiandoCliente: false,
+  corregirCliente: false,
   clientes: [],
   cotizaciones: [],
 };
@@ -397,16 +399,39 @@ function totales(lineas = estado.cotizador) {
   return { venta: centavos(venta), costo: centavos(costo), sinCosto };
 }
 
+// Cliente: se escribe el código exacto (el "nombre" del cliente) y Enter. A la vista: código y CUIT.
+let clienteNoEncontrado = '';
 function htmlCliente() {
   const c = estado.cotCliente;
-  if (!c) return '<button class="btn chico" data-elegir-cliente type="button">+ Cliente</button>';
-  return `<div class="cliente-sel">
-    <div><strong>${esc(c.nombre)}</strong><small>${esc(c.condicionIva || '')}</small></div>
-    <div class="cliente-cuit">
-      ${c.cuit ? `<span class="codigo">${esc(fmtCuit(c.cuit))}</span><button class="btn chico" data-copiar-cuit type="button" title="Copiar CUIT (sin guiones)">Copiar CUIT</button>` : ''}
-      <button class="enlace" data-elegir-cliente type="button">Cambiar</button>
-    </div>
+  const ed = estado.cotEditando;
+  if (c && !estado.cotCambiandoCliente) {
+    return `<div class="cliente-sel">
+      <div><small>Cliente</small><strong>${esc(c.nombre)}</strong></div>
+      <div class="cliente-cuit">
+        ${c.cuit ? `<span class="codigo">${esc(fmtCuit(c.cuit))}</span><button class="btn chico" data-copiar-cuit type="button" title="Copiar CUIT (sin guiones)">Copiar CUIT</button>` : '<span class="nota">sin CUIT</span>'}
+        <button class="enlace" data-cambiar-cliente type="button">Cambiar</button>
+        <button class="enlace" data-editar-cliente type="button" title="Editar CUIT / condición frente al IVA">Editar</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="cliente-entrada">
+    <label>Código de cliente
+      <input data-cliente-codigo type="text" autocomplete="off" spellcheck="false" placeholder="Escribí el código y Enter" value="${esc(clienteNoEncontrado)}">
+    </label>
+    ${c ? `<button class="enlace" data-cancelar-cambio type="button">Cancelar</button>` : ''}
+    ${ed && c ? `<label class="opcion corregir"><input type="checkbox" data-corregir ${estado.corregirCliente ? 'checked' : ''}> corregir la ${esc(fmtNumero(ed.numero))} (no crear una nueva)</label>` : ''}
+    ${clienteNoEncontrado ? `<div class="cliente-no">No existe el cliente «${esc(clienteNoEncontrado)}». <button class="btn chico" data-crear-cliente type="button">Crear cliente</button></div>` : ''}
   </div>`;
+}
+
+function buscarClientePorCodigo(texto) {
+  const q = normalizar(texto);
+  if (!q) return;
+  const c = estado.clientes.find((x) => normalizar(x.nombre) === q);
+  if (c) { clienteNoEncontrado = ''; usarCliente(c); return; }
+  clienteNoEncontrado = texto.trim();
+  dibujarCotizador();
+  $('cotizador').querySelector('[data-crear-cliente]')?.focus();
 }
 
 function dibujarCotizador() {
@@ -628,7 +653,12 @@ function nuevaCotizacion() {
 }
 
 // ---- Eventos del panel
+$('cotizador').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.matches('[data-cliente-codigo]')) { e.preventDefault(); buscarClientePorCodigo(e.target.value); }
+  if (e.key === 'Escape' && e.target.matches('[data-cliente-codigo]') && estado.cotCliente) { estado.cotCambiandoCliente = false; clienteNoEncontrado = ''; dibujarCotizador(); }
+});
 $('cotizador').addEventListener('change', (e) => {
+  if (e.target.matches('[data-cliente-codigo]')) { if (e.target.value.trim()) buscarClientePorCodigo(e.target.value); return; }
   if (!e.target.matches('[data-fecha]')) return;
   const v = e.target.value;
   if (!v) { e.target.value = estado.cotFecha || hoyYMD(); return; }
@@ -662,7 +692,11 @@ $('cotizador').addEventListener('click', (e) => {
   if (t.closest('[data-guardar-cot]')) return guardarCotizacion();
   if (t.closest('[data-marcar-facturada]')) return marcarFacturada(estado.cotEditando.id, true);
   if (t.closest('[data-agregar-libre]')) return abrirItemLibre();
-  if (t.closest('[data-elegir-cliente]')) return abrirClientes();
+  if (t.closest('[data-cambiar-cliente]')) { estado.cotCambiandoCliente = true; estado.corregirCliente = false; clienteNoEncontrado = ''; dibujarCotizador(); $('cotizador').querySelector('[data-cliente-codigo]')?.focus(); return; }
+  if (t.closest('[data-cancelar-cambio]')) { estado.cotCambiandoCliente = false; clienteNoEncontrado = ''; return dibujarCotizador(); }
+  if (t.closest('[data-crear-cliente]')) return abrirFormClienteSuelto(null, clienteNoEncontrado);
+  if (t.closest('[data-editar-cliente]')) return abrirFormClienteSuelto(estado.clientes.find((x) => x.id === estado.cotCliente?.id) || null, estado.cotCliente?.nombre);
+  if (t.closest('[data-corregir]')) { estado.corregirCliente = t.closest('[data-corregir]').checked; return; }
   if (t.closest('[data-copiar-cuit]')) return copiarCuit(estado.cotCliente?.cuit);
   if (t.closest('[data-quitar]')) quitarDelCotizador(t.closest('tr').dataset.id);
 });
@@ -767,14 +801,26 @@ function usarCliente(c) {
   const ed = estado.cotEditando;
   const cambia = !estado.cotCliente || estado.cotCliente.id !== c.id;
   estado.cotCliente = { id: c.id, nombre: c.nombre, cuit: c.cuit || '', condicionIva: c.condicionIva || '' };
-  if (ed && cambia && !$('cli-corregir').checked) {
+  if (ed && cambia && !estado.corregirCliente) {
     // Mismos ítems, precios y fecha para otro cliente: queda como cotización nueva; la guardada no se toca.
     estado.cotEditando = null;
     aviso(`Cotización nueva para ${c.nombre} con los mismos ítems (la ${fmtNumero(ed.numero)} quedó como estaba). Tocá Guardar.`);
   }
+  estado.cotCambiandoCliente = false;
+  estado.corregirCliente = false;
+  clienteNoEncontrado = '';
   huboCambios();
   $('dlg-cliente').close();
   dibujarCotizador();
+}
+
+/** Formulario de cliente directo (crear con el código escrito, o editar el actual). */
+function abrirFormClienteSuelto(c, codigo) {
+  $('cli-corregir-caja').hidden = true;
+  $('dlg-cliente').showModal();
+  abrirFormCliente(c);
+  if (!c && codigo) fc.nombre.value = codigo;
+  (c || codigo ? fc.cuit : fc.nombre).focus();
 }
 $('cli-buscar').addEventListener('input', dibujarListaClientes);
 $('cli-lista').addEventListener('click', (e) => {
@@ -785,13 +831,15 @@ $('cli-lista').addEventListener('click', (e) => {
   else if (e.target.closest('[data-usar]')) usarCliente(c);
 });
 $('btn-cli-nuevo').addEventListener('click', () => abrirFormCliente(null));
-$('btn-cli-volver').addEventListener('click', () => (estado.clientes.length ? mostrarListaClientes() : $('dlg-cliente').close()));
+$('btn-cli-volver').addEventListener('click', () => $('dlg-cliente').close());
 fc.addEventListener('submit', async (e) => {
   e.preventDefault();
   const error = (m) => { $('cli-error').textContent = m; $('cli-error').hidden = false; };
   const nombre = fc.nombre.value.trim();
   const cuit = fc.cuit.value.replace(/\D/g, '');
-  if (!nombre) return error('Escribí un nombre.');
+  if (!nombre) return error('Escribí el código de cliente.');
+  const repetido = estado.clientes.find((x) => x.id !== clienteEditando?.id && normalizar(x.nombre) === normalizar(nombre));
+  if (repetido) return error(`Ya existe un cliente con el código «${repetido.nombre}».`);
   if (cuit && cuit.length !== 11 && (cuit.length < 7 || cuit.length > 8)) return error('El CUIT tiene 11 números (o el DNI 7 u 8).');
   const cliente = { id: clienteEditando?.id, nombre, cuit, condicionIva: fc.condicionIva.value };
   try {
@@ -843,7 +891,7 @@ function dibujarCotizaciones() {
     <tbody>${lista.map((c) => `<tr data-cot="${esc(c.id)}" class="${estado.cotEditando?.id === c.id ? 'abierta' : ''}">
       <td class="codigo-num">${esc(fmtNumero(c.numero))}</td>
       <td>${c.fechaFactura ? `<span class="${c.estado !== 'facturada' && fechaFueraDeRango(c.fechaFactura) ? 'error' : ''}" title="${c.estado !== 'facturada' && fechaFueraDeRango(c.fechaFactura) ? 'Fuera del rango de ARCA: cambiala al facturar' : 'Fecha de factura'}">${esc(fmtYMD(c.fechaFactura))}</span>` : esc(fmtDia(c.fecha))}</td>
-      <td>${c.cliente ? `<strong>${esc(c.cliente.nombre)}</strong><small>${c.cliente.cuit ? `${esc(fmtCuit(c.cliente.cuit))} <button type="button" class="enlace" data-cuit>copiar</button> · ` : ''}${esc(c.cliente.condicionIva || '')}</small>` : '<span class="nota">sin cliente</span>'}</td>
+      <td>${c.cliente ? `<strong>${esc(c.cliente.nombre)}</strong><small>${c.cliente.cuit ? `${esc(fmtCuit(c.cliente.cuit))} <button type="button" class="enlace" data-cuit>copiar</button>` : 'sin CUIT'}</small>` : '<span class="nota">sin cliente</span>'}</td>
       <td class="num">${(c.items || []).length}</td>
       <td class="num"><strong>${pesos(c.totales?.venta)}</strong></td>
       <td>${c.estado === 'facturada'

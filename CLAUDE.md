@@ -67,8 +67,10 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - Firefox headless no avanza transiciones: `control.js` las desactiva en el paso `movil-cot-abierta`.
 
 ## Cotizaciones (decisiones de Diego)
-- Cliente: **nombre** (referencia propia; ARCA trae la razón social del CUIT), **CUIT/DNI** (se copia sin guiones),
-  **condición frente al IVA**. Colección `clientes`.
+- Cliente: **código** (campo `nombre`; referencia propia, ARCA trae la razón social del CUIT), **CUIT/DNI** (se copia
+  sin guiones), **condición frente al IVA** (guardada, no se muestra). Colección `clientes`.
+- En la cotización se **escribe el código exacto + Enter** (sin desplegable; compara sin mayúsculas/tildes). Si no existe:
+  "Crear cliente" con el código ya puesto. A la vista solo código y CUIT. Carga masiva de clientes: más adelante.
 - "+ Agregar ítem" = ítem provisorio (descripción, unidad, cantidad, precio unitario final $), solo para esa cotización.
 - Unidades: solo `unidades` (7), `otras unidades` (98), `kilogramos` (1), `litros` (5). Diego elige a mano por producto.
 - **Guardar cotización** = "pantallazo": colección `cotizaciones` con `numero` (máx+1), `fecha`, `estado`
@@ -106,7 +108,7 @@ Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios
 
 ## Pruebas
 `python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|vacio"`
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|serie-reuso|cliente-no|cliente-form|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).
