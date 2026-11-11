@@ -166,6 +166,15 @@
           <label class="ancho">Código de cliente (el que vas a escribir para buscarlo) <input name="nombre" autocomplete="off" spellcheck="false"></label>
           <label>CUIT / DNI <input name="cuit" inputmode="numeric" autocomplete="off" placeholder="20-12345678-9"></label>
           <label>Condición frente al IVA <select name="condicionIva" id="sel-condicion"></select></label>
+          <label class="ancho">Domicilio comercial en ARCA (por si el CUIT tiene varios)
+            <select name="domicilio">
+              <option value="1">1º — el primero de la lista de ARCA (lo normal)</option>
+              <option value="2">2º de la lista</option>
+              <option value="3">3º de la lista</option>
+              <option value="4">4º de la lista</option>
+              <option value="5">5º de la lista</option>
+            </select>
+          </label>
         </div>
         <p id="cli-error" class="error" hidden></p>
         <div class="acciones">

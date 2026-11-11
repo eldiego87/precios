@@ -68,7 +68,8 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 
 ## Cotizaciones (decisiones de Diego)
 - Cliente: **código** (campo `nombre`; referencia propia, ARCA trae la razón social del CUIT), **CUIT/DNI** (se copia
-  sin guiones), **condición frente al IVA** (guardada, no se muestra). Colección `clientes`.
+  sin guiones), **condición frente al IVA** (guardada, no se muestra), **domicilio** (Nº 1–5 de la lista de domicilios
+  que ARCA trae para el CUIT; default 1; para clientes que comparten CUIT). Colección `clientes`.
 - En la cotización se **escribe el código exacto + Enter** (sin desplegable; compara sin mayúsculas/tildes). Si no existe:
   "Crear cliente" con el código ya puesto. A la vista solo código y CUIT. Carga masiva de clientes: más adelante.
 - "+ Agregar ítem" = ítem provisorio (descripción, unidad, cantidad, precio unitario final $), solo para esa cotización.
@@ -96,7 +97,7 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   menú (`#btn_gen_cmp`) → punto de venta (el único; si hay varios pide elegir) + "Factura C" (lista por ajax) →
   emisión: `#fc` = fecha, `#idconcepto` = 1 Productos → receptor: `#idivareceptor` (texto de la condición del cliente),
   `#idtipodocreceptor` 80 CUIT / 96 DNI, `#nrodocreceptor` (change → ajax razón social; espera hasta 12 s),
-  primer domicilio, checkbox `formaDePago` value 96 = Cuenta Corriente → ítems (filas con `insertarFilaDetalle()`).
+  domicilio Nº `dom` (si ARCA trae menos, se frena y avisa), checkbox `formaDePago` value 96 = Cuenta Corriente → ítems (filas con `insertarFilaDetalle()`).
   **En ítems NO continúa solo** (pedido de Diego: si ARCA da error y se vuelve atrás, borra los ítems): carga y avisa.
   En el resumen final (paso 4) NO hace nada: confirma Diego.
 - La pantalla de ítems tiene `#idivareceptor`, `#nrodocreceptor`, etc. como **inputs ocultos**: detectar ítems antes que receptor.

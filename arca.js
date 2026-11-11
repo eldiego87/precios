@@ -16,7 +16,8 @@
 //   pv: select#puntodeventa (onchange → ajax tipos), select#universocomprobante
 //   emisión: input#fc (DD/MM/AAAA), select#idconcepto (1 Productos); Productos admite hoy ±5 días
 //   receptor: select#idivareceptor (jQuery change → tipos doc), #idtipodocreceptor (80 CUIT, 96 DNI),
-//     #nrodocreceptor (change → ajax razón social), #razonsocialreceptor, #domicilioreceptorcombo,
+//     #nrodocreceptor (change → ajax razón social), #razonsocialreceptor, #domicilioreceptorcombo (se elige el Nº
+//     `dom` del cliente entre las opciones con valor; "Otro..." tiene valor vacío),
 //     checkbox formaDePago value 96 = Cuenta Corriente
 //   ítems: textarea#detalle_descripcionN, #detalle_cantidadN, select#detalle_medidaN, #detalle_precioN.
 //     Punto decimal, hasta 2 decimales (#numdecimalescantidad admite 4/6). "seleccionar..." y "unidades" valen 7.
@@ -43,7 +44,9 @@ export function textoParaArca({ items, cliente, fecha }) {
     Number(x.unidad) || 7,
     redondear(x.precioUnitario, 2),
   ]);
-  const c = cliente && cliente.cuit ? { cuit: String(cliente.cuit).replace(/\D/g, ''), iva: cliente.condicionIva || '' } : null;
+  const c = cliente && cliente.cuit
+    ? { cuit: String(cliente.cuit).replace(/\D/g, ''), iva: cliente.condicionIva || '', dom: Number(cliente.domicilio) || 1 }
+    : null;
   const f = fecha ? fecha.split('-').reverse().join('/') : null; // DD/MM/AAAA, como lo pide ARCA
   return PREFIJO + JSON.stringify({ c, f, i });
 }
@@ -144,9 +147,15 @@ function marcador() {
       cambio(nro);
       if (!(await esperarQue(() => $('razonsocialreceptor').value.trim() !== '', 12000))) { alert('ARCA no devolvió la razón social del CUIT ' + cli.cuit + '. Revisalo.'); return; }
       const dom = $('domicilioreceptorcombo');
-      if (dom && dom.offsetParent !== null && !dom.value) {
-        const o = [...dom.options].find((x) => x.value);
-        if (o) { dom.value = o.value; cambio(dom); }
+      const nDom = Number(cli.dom) || 1;
+      if (dom && dom.offsetParent !== null) {
+        const reales = [...dom.options].filter((x) => x.value);
+        if (reales.length < nDom) {
+          alert('Este cliente usa el domicilio ' + nDom + 'º, pero ARCA muestra ' + reales.length + (reales.length === 1 ? ' domicilio' : ' domicilios') + ' para el CUIT ' + cli.cuit + '.\n\nElegilo a mano y tocá "Continuar".');
+          return;
+        }
+        dom.value = reales[nDom - 1].value;
+        cambio(dom);
       }
       const cc = d.querySelector('input[name=formaDePago][value="96"]') || $('formadepago4');
       if (cc && !cc.checked) cc.click();

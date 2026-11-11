@@ -410,6 +410,7 @@ function htmlCliente() {
     return `<div class="cliente-sel">
       <div><small>Cliente</small><strong>${esc(c.nombre)}</strong></div>
       <div class="cliente-cuit">
+        ${c.domicilio > 1 ? `<span class="nota">domicilio ${c.domicilio}º</span>` : ''}
         ${c.cuit ? `<span class="codigo">${esc(fmtCuit(c.cuit))}</span><button class="btn chico" data-copiar-cuit type="button" title="Copiar CUIT (sin guiones)">Copiar CUIT</button>` : '<span class="nota">sin CUIT</span>'}
         <button class="enlace" data-cambiar-cliente type="button">Cambiar</button>
         <button class="enlace" data-editar-cliente type="button" title="Editar CUIT / condición frente al IVA">Editar</button>
@@ -793,6 +794,7 @@ function abrirFormCliente(c) {
   fc.nombre.value = c?.nombre || $('cli-buscar').value.trim();
   fc.cuit.value = c ? fmtCuit(c.cuit) : '';
   fc.condicionIva.value = c?.condicionIva || 'Consumidor Final';
+  fc.domicilio.value = String(c?.domicilio || 1);
   $('btn-cli-borrar').hidden = !c;
   $('cli-error').hidden = true;
   $('cli-elegir').hidden = true;
@@ -803,7 +805,7 @@ function abrirFormCliente(c) {
 function usarCliente(c) {
   const ed = estado.cotEditando;
   const cambia = !estado.cotCliente || estado.cotCliente.id !== c.id;
-  estado.cotCliente = { id: c.id, nombre: c.nombre, cuit: c.cuit || '', condicionIva: c.condicionIva || '' };
+  estado.cotCliente = { id: c.id, nombre: c.nombre, cuit: c.cuit || '', condicionIva: c.condicionIva || '', domicilio: c.domicilio || 1 };
   if (ed && cambia && !estado.corregirCliente) {
     // Mismos ítems, precios y fecha para otro cliente: queda como cotización nueva; la guardada no se toca.
     estado.cotEditando = null;
@@ -844,7 +846,7 @@ fc.addEventListener('submit', async (e) => {
   const repetido = estado.clientes.find((x) => x.id !== clienteEditando?.id && normalizar(x.nombre) === normalizar(nombre));
   if (repetido) return error(`Ya existe un cliente con el código «${repetido.nombre}».`);
   if (cuit && cuit.length !== 11 && (cuit.length < 7 || cuit.length > 8)) return error('El CUIT tiene 11 números (o el DNI 7 u 8).');
-  const cliente = { id: clienteEditando?.id, nombre, cuit, condicionIva: fc.condicionIva.value };
+  const cliente = { id: clienteEditando?.id, nombre, cuit, condicionIva: fc.condicionIva.value, domicilio: Number(fc.domicilio.value) || 1 };
   try {
     const id = await datos.guardarEn('clientes', cliente);
     const guardado = { ...cliente, id };
