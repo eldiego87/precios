@@ -1,6 +1,6 @@
 # precios — Lista de precios + facturación (Casas TDA)
 
-Sistema web propio de Diego (monotributista, Factura C, <15 facturas/mes, ~110 ítems).
+Sistema web propio de Diego (Factura C, ~110 ítems).
 Reemplaza su Google Sheets "PRECIOS". Interfaz en español con voseo. Diego no es programador:
 explicar simple y guiarlo paso a paso (ver `../form3/CLAUDE.md`, mismo esquema y forma de trabajo).
 
