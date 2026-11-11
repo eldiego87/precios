@@ -1106,6 +1106,7 @@ function llenarFicha(v) {
   fp.margen.value = paraCampo(v.margen);
   fp.precioUSD.value = paraCampo(v.precioUSD);
   fp.precioARS.value = paraCampo(v.precioARS);
+  fp.precioARSFinal.value = v.precioARS ? paraCampo(Math.round(v.precioARS * (1 + IVA) * 100) / 100) : '';
   fp.favorito.checked = !!v.favorito;
   fp.unidad.value = String(v.unidad || 7);
   actualizarDesglose();
@@ -1169,6 +1170,13 @@ fp.addEventListener('input', (e) => {
   const costo = leerNumero(fp.costoUSD.value);
   if ((n === 'costoUSD' || n === 'margen') && costo && leerNumero(fp.margen.value)) {
     fp.precioUSD.value = paraCampo(Math.round(costo * leerNumero(fp.margen.value) * 10000) / 10000);
+  } else if (n === 'precioARS') {
+    // Precio fijo en pesos: sin IVA ↔ final, se escribe en cualquiera de los dos.
+    const sin = leerNumero(fp.precioARS.value);
+    fp.precioARSFinal.value = sin ? paraCampo(Math.round(sin * (1 + IVA) * 100) / 100) : '';
+  } else if (n === 'precioARSFinal') {
+    const fin = leerNumero(fp.precioARSFinal.value);
+    fp.precioARS.value = fin ? paraCampo(Math.round((fin / (1 + IVA)) * 1e6) / 1e6) : '';
   } else if (n === 'precioUSD' && costo) {
     const precio = leerNumero(fp.precioUSD.value);
     fp.margen.value = precio ? paraCampo(Math.round((precio / costo) * 1000) / 1000) : '';

@@ -39,6 +39,8 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - `usuarios/{uid}/productos/{id}`: `codigo`, `descripcion`, `categoria` (MAYÚSCULAS, conserva Ñ), `proveedor`,
   `moneda` (`USD`|`ARS`), `precioUSD` o `precioARS` (**sin IVA**), `costoUSD`, `margen` (informativos;
   costo × margen = precioUSD), `favorito`, `actualizado`.
+- Ficha, precio fijo en pesos: campos vinculados "sin IVA" ↔ "final (con 21%)"; se guarda `precioARS` sin IVA
+  (con 6 decimales si se cargó el final, para que el final dé exacto).
 - Final = sin IVA × 1,21. **Decisión de Diego**: aunque es monotributista sigue sumando 21% (costumbre de
   cuando era RI y proveedores con "precio + IVA"); ese final es lo que factura. No re-discutir.
 - Datos de negocio (costos, márgenes, proveedores) **nunca** en el repo (es público para Pages).
