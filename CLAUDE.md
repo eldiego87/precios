@@ -97,6 +97,7 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   emisión: `#fc` = fecha, `#idconcepto` = 1 Productos → receptor: `#idivareceptor` (texto de la condición del cliente),
   `#idtipodocreceptor` 80 CUIT / 96 DNI, `#nrodocreceptor` (change → ajax razón social; espera hasta 12 s),
   primer domicilio, checkbox `formaDePago` value 96 = Cuenta Corriente → ítems (filas con `insertarFilaDetalle()`).
+  **En ítems NO continúa solo** (pedido de Diego: si ARCA da error y se vuelve atrás, borra los ítems): carga y avisa.
   En el resumen final (paso 4) NO hace nada: confirma Diego.
 - La pantalla de ítems tiene `#idivareceptor`, `#nrodocreceptor`, etc. como **inputs ocultos**: detectar ítems antes que receptor.
 - Fecha (concepto Productos): RCEL acepta hoy −5 … hoy +5.

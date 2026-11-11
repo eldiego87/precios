@@ -8,7 +8,8 @@
 //    reconoce cuál es, la completa y toca "Continuar" (validarCampos() de la propia página):
 //      menú → "Generar Comprobantes" · punto de venta (el único) + "Factura C" · emisión: fecha + concepto
 //      "Productos" · receptor: condición IVA, CUIT (espera la razón social), domicilio, "Cuenta Corriente" ·
-//      ítems (agrega filas con insertarFilaDetalle()).
+//      ítems (agrega filas con insertarFilaDetalle()) — acá NO toca "Continuar": Diego revisa y continúa
+//      (si ARCA da error y se vuelve atrás, borra todos los ítems).
 //    En la pantalla final de confirmación NO hace nada: la factura la confirma Diego.
 //
 // Campos verificados en las páginas guardadas el 11/11/2026:
@@ -190,8 +191,9 @@ function marcador() {
       const n = Number(campo(tx, 'detalleCantidad').id.replace('detalle_cantidad', ''));
       if (n && typeof w.calcularSubtotalDetalle === 'function') w.calcularSubtotalDetalle(n);
     }
-    await espera(200);
-    continuar();
+    /* En ítems NO se continúa solo: si ARCA da un error y se vuelve atrás, borra todos los ítems. */
+    const total = $('imptotal') ? $('imptotal').value : '';
+    alert('Listo: ' + items.length + (items.length === 1 ? ' ítem cargado' : ' ítems cargados') + (total ? '. Total: $ ' + total : '') + '.\n\nRevisalos y tocá "Continuar" vos.');
   })();
 }
 
