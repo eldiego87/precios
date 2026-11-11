@@ -82,24 +82,28 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - Lista "Cotizaciones" (línea de ensamblaje): Pendientes/Facturadas/Todas; por fila: copiar CUIT, 📋 Copiar
   (para el marcador), ✓ Facturada / deshacer, Abrir, borrar.
 - La cotización abierta (líneas, cliente, edición) se recuerda en localStorage `precios.cotizador.v2`.
-- **Fecha de factura** (`fechaFactura` AAAA-MM-DD, local): por defecto hoy; rango hoy−5 … hoy (lo que permite RCEL).
-  Guardadas viejas fuera de rango: en rojo en la lista y aviso al copiar. El marcador NO la completa (va en el paso 1).
+- **Fecha de factura** (`fechaFactura` AAAA-MM-DD, local): por defecto hoy; rango hoy−5 … hoy+5 (RCEL, Productos).
+  Fuera de rango: en rojo en la lista y aviso al copiar. El marcador la pone en la pantalla de emisión.
 - **Cambiar el cliente de una cotización guardada abierta = cotización nueva** con mismos ítems/precios/fecha
   (la guardada no se toca). Casilla "Corregir el cliente de la Nº…" en el diálogo para editar la existente.
   Pensado para facturar el mismo mantenimiento a varias clínicas: cambiar cliente → Guardar → repetir.
-- Pendiente: que el marcador complete también el paso 2 de ARCA (receptor) — Diego quiere verlo después.
 
-## Puente con ARCA (atajo hasta la etapa 3)
-- Cotización rápida → **Copiar para ARCA** → en RCEL, Factura C, paso 3 "Datos de la operación", el marcador
-  completa descripción, cantidad, unidad y precio unitario; agrega filas con `insertarFilaDetalle()` de la página
-  y recalcula con `calcularSubtotalDetalle(n)`. Nunca toca "Continuar".
-- Campos RCEL (página guardada 11/11/2026): `textarea[name=detalleDescripcion]#detalle_descripcionN`, `detalleCantidad`,
-  `select detalleMedida` (ojo: "seleccionar..." y "unidades" valen 7), `detallePrecio`. Punto decimal, máx. 2 decimales
-  (cantidad admite 4/6 con `#numdecimalescantidad`). Se trabaja por fila (`closest('tr')`), no por id.
-- Sincroniza `numFilasDetallesMax` si quedó atrás (en la copia guardada había filas con id repetido).
-- Producto tiene `unidad` (código ARCA, default 7). Precio unitario y subtotales redondeados a centavos como ARCA.
-- Probado contra la copia guardada: carga 4 ítems, total correcto y `validarCamposValores()` = true.
-  **Falta probarlo en el ARCA real.**
+## Puente con ARCA (marcador "Pegar en ARCA")
+- "📋 Copiar" (panel o lista) pone en el portapapeles `ARCA-COT1{"c":{cuit,iva},"f":"DD/MM/AAAA","i":[[desc,cant,unidad,precio]]}`.
+  El marcador acepta también el formato viejo `ARCA-ITEMS1` (solo ítems).
+- **Un toque por pantalla** (cada carga de página corta el script). Reconoce la pantalla y completa + "Continuar"
+  (`validarCampos()` de la página):
+  menú (`#btn_gen_cmp`) → punto de venta (el único; si hay varios pide elegir) + "Factura C" (lista por ajax) →
+  emisión: `#fc` = fecha, `#idconcepto` = 1 Productos → receptor: `#idivareceptor` (texto de la condición del cliente),
+  `#idtipodocreceptor` 80 CUIT / 96 DNI, `#nrodocreceptor` (change → ajax razón social; espera hasta 12 s),
+  primer domicilio, checkbox `formaDePago` value 96 = Cuenta Corriente → ítems (filas con `insertarFilaDetalle()`).
+  En el resumen final (paso 4) NO hace nada: confirma Diego.
+- La pantalla de ítems tiene `#idivareceptor`, `#nrodocreceptor`, etc. como **inputs ocultos**: detectar ítems antes que receptor.
+- Fecha (concepto Productos): RCEL acepta hoy −5 … hoy +5.
+- Probado contra copias guardadas de cada pantalla (11/11/2026) con un servidor que simula `ajax.do`
+  (`tiposcomp`, `datosreceptor2`) y `form.submit` interceptado. **Falta probar en el ARCA real.**
+- Campos de ítems: `textarea[name=detalleDescripcion]`, `detalleCantidad`, `detalleMedida` ("seleccionar..." y
+  "unidades" valen 7), `detallePrecio`; punto decimal, 2 decimales (`#numdecimalescantidad` admite 4/6). Por fila, no por id.
 
 ## Planilla original (PRECIOS.xlsx)
 Hoja "Tabla Original": CAEGORIA(sic), CODIGO, PRODUCTO, PRECIO U$S (=COSTO×%), IVA, FINAL, PROVEEDOR,

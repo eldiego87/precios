@@ -307,9 +307,11 @@ const fmtCuit = (c) => { const d = String(c || '').replace(/\D/g, ''); return d.
 const dosD = (n) => String(n).padStart(2, '0');
 const aYMD = (d) => `${d.getFullYear()}-${dosD(d.getMonth() + 1)}-${dosD(d.getDate())}`;
 const hoyYMD = () => aYMD(new Date());
-/** ARCA (RCEL) permite fechar el comprobante hasta 5 días antes de hoy. */
-const minFechaYMD = () => { const d = new Date(); d.setDate(d.getDate() - 5); return aYMD(d); };
-const fechaFueraDeRango = (ymd) => !!ymd && (ymd < minFechaYMD() || ymd > hoyYMD());
+/** ARCA (RCEL), concepto Productos: fecha del comprobante entre 5 días antes y 5 días después de hoy. */
+const corrido = (dias) => { const d = new Date(); d.setDate(d.getDate() + dias); return aYMD(d); };
+const minFechaYMD = () => corrido(-5);
+const maxFechaYMD = () => corrido(5);
+const fechaFueraDeRango = (ymd) => !!ymd && (ymd < minFechaYMD() || ymd > maxFechaYMD());
 const fmtYMD = (ymd) => { if (!ymd) return ''; const [a, m, d] = ymd.split('-'); return `${d}/${m}/${a.slice(2)}`; };
 const fmtDia = (iso) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
 
@@ -465,8 +467,8 @@ function dibujarCotizador() {
   cont.innerHTML = `
     <div class="cot-cliente">${htmlCliente()}</div>
     <div class="cot-fecha-fila">
-      <label>Fecha de factura <input type="date" data-fecha value="${esc(estado.cotFecha || hoyYMD())}" min="${minFechaYMD()}" max="${hoyYMD()}"></label>
-      <span class="nota" data-fecha-aviso>${fechaFueraDeRango(estado.cotFecha) ? '<span class="error">ARCA solo acepta hasta 5 días antes de hoy: cambiala antes de facturar.</span>' : 'Hasta 5 días antes de hoy (lo que permite ARCA).'}</span>
+      <label>Fecha de factura <input type="date" data-fecha value="${esc(estado.cotFecha || hoyYMD())}" min="${minFechaYMD()}" max="${maxFechaYMD()}"></label>
+      <span class="nota" data-fecha-aviso>${fechaFueraDeRango(estado.cotFecha) ? '<span class="error">ARCA solo acepta de 5 días antes a 5 días después de hoy: cambiala antes de facturar.</span>' : 'De 5 días antes a 5 días después de hoy (lo que permite ARCA).'}</span>
     </div>
     ${hay ? `
     <table class="tabla-cot">
@@ -515,13 +517,14 @@ function actualizarNumerosCotizador() {
 }
 
 // ---- Copiar para ARCA (desde la cotización abierta o desde una guardada)
-async function copiarItemsArca(items, fechaYMD) {
-  const texto = textoParaArca(items);
+async function copiarItemsArca(items, fechaYMD, cliente) {
   if (fechaYMD && fechaFueraDeRango(fechaYMD)
-    && !confirm(`La fecha de factura (${fmtYMD(fechaYMD)}) está fuera de lo que acepta ARCA (hasta 5 días antes de hoy). En ARCA vas a tener que poner otra. ¿Copiar igual?`)) return;
+    && !confirm(`La fecha de factura (${fmtYMD(fechaYMD)}) está fuera de lo que acepta ARCA (de 5 días antes a 5 días después de hoy). El marcador la va a poner igual y ARCA la va a rechazar. ¿Copiar igual?`)) return;
+  if (!cliente?.cuit && !confirm('La cotización no tiene cliente con CUIT: el paso del receptor lo vas a tener que completar a mano. ¿Copiar igual?')) return;
+  const texto = textoParaArca({ items, cliente, fecha: fechaYMD });
   try {
     await navigator.clipboard.writeText(texto);
-    aviso(`Copiado: ${items.length} ${items.length === 1 ? 'ítem' : 'ítems'}${fechaYMD ? ` · fecha ${fmtYMD(fechaYMD)} (ponela en el paso 1 de ARCA)` : ''}. En el paso 3 tocá el marcador.`);
+    aviso(`Copiado: ${cliente?.nombre ? cliente.nombre + ' · ' : ''}${items.length} ${items.length === 1 ? 'ítem' : 'ítems'} · fecha ${fmtYMD(fechaYMD)}. En ARCA tocá el marcador en cada pantalla.`);
   } catch {
     prompt('Copiá este texto (Ctrl+C) y pegalo cuando el marcador lo pida:', texto);
   }
@@ -534,7 +537,7 @@ async function copiarParaArca() {
   await copiarItemsArca(estado.cotizador.map((l) => {
     const c = calcularLinea(l);
     return { descripcion: c.descripcion, cantidad: l.cantidad, unidad: c.unidad, precioUnitario: c.precioUnitario };
-  }), estado.cotFecha || hoyYMD());
+  }), estado.cotFecha || hoyYMD(), estado.cotCliente);
 }
 
 async function copiarCuit(cuit) {
@@ -662,7 +665,7 @@ $('cotizador').addEventListener('change', (e) => {
   if (!e.target.matches('[data-fecha]')) return;
   const v = e.target.value;
   if (!v) { e.target.value = estado.cotFecha || hoyYMD(); return; }
-  if (fechaFueraDeRango(v)) { aviso('ARCA permite hasta 5 días antes de hoy, y no fechas futuras.'); e.target.value = estado.cotFecha || hoyYMD(); return; }
+  if (fechaFueraDeRango(v)) { aviso('ARCA permite de 5 días antes a 5 días después de hoy.'); e.target.value = estado.cotFecha || hoyYMD(); return; }
   estado.cotFecha = v;
   huboCambios();
   dibujarCotizador();
@@ -920,7 +923,7 @@ $('cots-lista').addEventListener('click', async (e) => {
   const t = e.target;
   if (t.closest('[data-cuit]')) return copiarCuit(c.cliente?.cuit);
   if (t.closest('[data-copiar]')) {
-    return copiarItemsArca((c.items || []).map((it) => ({ descripcion: it.descripcion, cantidad: it.cantidad, unidad: it.unidad, precioUnitario: it.precio })), c.fechaFactura);
+    return copiarItemsArca((c.items || []).map((it) => ({ descripcion: it.descripcion, cantidad: it.cantidad, unidad: it.unidad, precioUnitario: it.precio })), c.fechaFactura || hoyYMD(), c.cliente);
   }
   if (t.closest('[data-facturada]')) return marcarFacturada(c.id, true);
   if (t.closest('[data-deshacer]')) return marcarFacturada(c.id, false);
