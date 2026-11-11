@@ -21,6 +21,7 @@ Descartado: embeber ARCA en un iframe (la política de mismo origen impide compl
 | `calculo.js` | Precios, búsqueda sin tildes, `leerNumero` ("1.535" = 1535). Sin dependencias. |
 | `datos.js` | Firebase (SDK web 12.4.0 de gstatic, sin build). |
 | `dolar.js` | Dólar actual BNA billete venta: CriptoYa (`bancostodos` → `bna.ask`), si falla DolarApi (`oficial`). |
+| `arca.js` | "Copiar para ARCA" (texto `ARCA-ITEMS1{json}`) + código del marcador (bookmarklet) "Pegar en ARCA". |
 | `excel.js` | Importa la planilla de Diego / exporta copia. SheetJS 0.18.5 de cdnjs, carga diferida. |
 | `firestore.rules` | Diego las pega a mano en la consola. Lista de emails permitidos dentro. |
 | `firebase-config.js` | Config pública; `null` = muestra "falta configurar". |
@@ -62,6 +63,18 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - Cotización: barra fija abajo (ítems, venta, costo); al tocarla se abre a pantalla completa
   (`body.cot-abierta`, `history.pushState` para que "atrás" la cierre). La tabla se vuelve tarjetas.
 - Firefox headless no avanza transiciones: `control.js` las desactiva en el paso `movil-cot-abierta`.
+
+## Puente con ARCA (atajo hasta la etapa 3)
+- Cotización rápida → **Copiar para ARCA** → en RCEL, Factura C, paso 3 "Datos de la operación", el marcador
+  completa descripción, cantidad, unidad y precio unitario; agrega filas con `insertarFilaDetalle()` de la página
+  y recalcula con `calcularSubtotalDetalle(n)`. Nunca toca "Continuar".
+- Campos RCEL (página guardada 11/11/2026): `textarea[name=detalleDescripcion]#detalle_descripcionN`, `detalleCantidad`,
+  `select detalleMedida` (ojo: "seleccionar..." y "unidades" valen 7), `detallePrecio`. Punto decimal, máx. 2 decimales
+  (cantidad admite 4/6 con `#numdecimalescantidad`). Se trabaja por fila (`closest('tr')`), no por id.
+- Sincroniza `numFilasDetallesMax` si quedó atrás (en la copia guardada había filas con id repetido).
+- Producto tiene `unidad` (código ARCA, default 7). Precio unitario y subtotales redondeados a centavos como ARCA.
+- Probado contra la copia guardada: carga 4 ítems, total correcto y `validarCamposValores()` = true.
+  **Falta probarlo en el ARCA real.**
 
 ## Planilla original (PRECIOS.xlsx)
 Hoja "Tabla Original": CAEGORIA(sic), CODIGO, PRODUCTO, PRECIO U$S (=COSTO×%), IVA, FINAL, PROVEEDOR,

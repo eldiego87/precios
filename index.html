@@ -34,6 +34,7 @@
           <button id="btn-nuevo-menu" class="solo-movil">+ Nuevo producto</button>
           <button id="btn-importar">Importar desde Excel…</button>
           <button id="btn-exportar">Descargar Excel (copia)</button>
+          <button id="btn-marcador">Instalar marcador "Pegar en ARCA"…</button>
           <hr>
           <span id="usuario-email" class="menu-info"></span>
           <button id="btn-salir">Cerrar sesión</button>
@@ -95,7 +96,10 @@
           <label>Precio $ (sin IVA) <input name="precioARS" inputmode="decimal" autocomplete="off"></label>
         </div>
 
-        <label class="opcion"><input type="checkbox" name="favorito"> ★ Favorito</label>
+        <div class="grilla">
+          <label>Unidad (para la factura de ARCA) <select name="unidad" id="sel-unidad"></select></label>
+          <label class="opcion favorito"><input type="checkbox" name="favorito"> ★ Favorito</label>
+        </div>
       </fieldset>
 
       <table class="desglose" id="prod-desglose"></table>
@@ -143,6 +147,26 @@
         <button type="button" class="btn" data-cerrar>Cancelar</button>
         <button type="submit" id="btn-confirmar-importar" class="btn primario" disabled>Importar</button>
       </div>
+    </form>
+  </dialog>
+
+  <!-- Instalar el marcador de ARCA -->
+  <dialog id="dlg-arca" class="dialogo">
+    <form method="dialog">
+      <h2>Marcador "Pegar en ARCA"</h2>
+      <p class="nota">Se instala una sola vez. Después, con la cotización armada: <strong>Copiar para ARCA</strong> → en ARCA tocás el marcador.</p>
+      <ol class="pasos">
+        <li>Mostrá la barra de favoritos: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd>.</li>
+        <li><strong>Arrastrá</strong> este botón hasta la barra de favoritos:
+          <div class="marcador-caja"><a id="link-marcador" class="marcador" href="#" title="Arrastrame a la barra de favoritos">📋 Pegar en ARCA</a></div>
+          <span class="nota">(Si lo tocás acá no hace nada: hay que arrastrarlo.)</span>
+        </li>
+        <li>En ARCA → Comprobantes en línea, avanzá hasta <strong>"Datos de la operación"</strong> (paso 3, donde se cargan los ítems).</li>
+        <li>Tocá el marcador. Si el navegador pregunta si puede leer el portapapeles, aceptá; si no, te pide que pegues con <kbd>Ctrl</kbd> + <kbd>V</kbd>.</li>
+        <li>Completa las líneas (agrega las que falten). <strong>Revisá</strong> y tocá "Continuar" en ARCA.</li>
+      </ol>
+      <p class="nota">Si algún día ARCA cambia esa pantalla y el marcador deja de andar, avisá y se ajusta (habrá que volver a arrastrarlo).</p>
+      <div class="acciones"><span class="espacio"></span><button class="btn primario" data-cerrar type="button">Entendido</button></div>
     </form>
   </dialog>
 

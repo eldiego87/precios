@@ -4,6 +4,7 @@ import {
   precioFinal, precioSinIva, costoFinal, coincide, textoBuscable, normalizar,
   leerNumero, paraCampo, pesos, dolares, numero, IVA,
 } from './calculo.js';
+import { UNIDADES, textoParaArca, codigoMarcador } from './arca.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -321,13 +322,18 @@ function cambiarCantidad(id, texto, origen) {
   actualizarNumerosCotizador();
 }
 
+const centavos = (n) => Math.round(n * 100) / 100;
+
 function calcularLinea(l) {
   const p = porId(l.id);
   const costoU = costoFinal(p, estado.cotizacion);
+  // Igual que ARCA: precio unitario a 2 decimales y subtotal redondeado a centavos.
+  const precioUnitario = centavos(precioFinal(p, estado.cotizacion));
   return {
     p,
+    precioUnitario,
     costo: costoU == null ? null : costoU * l.cantidad,
-    venta: precioFinal(p, estado.cotizacion) * l.cantidad,
+    venta: centavos(precioUnitario * l.cantidad),
   };
 }
 
@@ -356,9 +362,37 @@ function dibujarCotizador() {
       <tbody>${filas}</tbody>
       <tfoot><tr><td data-total-cant class="num"></td><td>Totales</td><td class="num" data-total-costo></td><td class="num" data-total-venta></td><td></td></tr></tfoot>
     </table>
-    <div class="cot-resumen" data-resumen></div>`;
+    <div class="cot-resumen" data-resumen></div>
+    <div class="cot-acciones">
+      <button class="btn primario" data-copiar-arca title="Copia los ítems para pegarlos en ARCA con el marcador">📋 Copiar para ARCA</button>
+      <button class="enlace" data-ayuda-arca type="button">¿Cómo se usa?</button>
+    </div>`;
   actualizarNumerosCotizador();
 }
+
+async function copiarParaArca() {
+  if (estado.cotizacionFuente !== 'manual' && estado.cotizacionFuente !== 'bna'
+    && !confirm('El dólar no está actualizado (no se pudo consultar el Banco Nación). ¿Copiar igual?')) return;
+  const items = estado.cotizador.map((l) => {
+    const { p, precioUnitario } = calcularLinea(l);
+    return { descripcion: p.descripcion || p.codigo, cantidad: l.cantidad, unidad: p.unidad || 7, precioUnitario };
+  });
+  const texto = textoParaArca(items);
+  try {
+    await navigator.clipboard.writeText(texto);
+    aviso(`Copiado: ${items.length} ${items.length === 1 ? 'ítem' : 'ítems'}. En ARCA tocá el marcador "Pegar en ARCA".`);
+  } catch {
+    // Sin permiso de portapapeles: mostrar el texto para copiarlo a mano.
+    prompt('Copiá este texto (Ctrl+C) y pegalo cuando el marcador lo pida:', texto);
+  }
+}
+
+function abrirAyudaArca() {
+  $('link-marcador').href = codigoMarcador();
+  $('dlg-arca').showModal();
+}
+$('btn-marcador').addEventListener('click', abrirAyudaArca);
+$('link-marcador').addEventListener('click', (e) => { e.preventDefault(); aviso('Arrastralo a la barra de favoritos (no hace falta tocarlo acá).'); });
 
 /** Recalcula los importes sin redibujar los campos (para no perder el foco). */
 function actualizarNumerosCotizador() {
@@ -411,6 +445,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.matches?.('[data-cantidad]')) { e.target.blur(); $('busqueda').focus(); }
 });
 $('cotizador').addEventListener('click', (e) => {
+  if (e.target.closest('[data-copiar-arca]')) { copiarParaArca(); return; }
+  if (e.target.closest('[data-ayuda-arca]')) { abrirAyudaArca(); return; }
   if (e.target.closest('[data-quitar]')) quitarDelCotizador(e.target.closest('tr').dataset.id);
 });
 // Celular: la cotización se abre en pantalla completa. Se agrega un paso al historial
@@ -530,6 +566,7 @@ $('form-cotizacion').addEventListener('submit', (e) => {
 
 // ---------------------------------------------------------------- ficha de producto
 const fp = $('form-producto');
+$('sel-unidad').innerHTML = UNIDADES.map(([c, n]) => `<option value="${c}">${esc(n)}</option>`).join('');
 let editando = null; // producto abierto (null = nuevo)
 
 function modoEdicion(activo) {
@@ -565,6 +602,7 @@ function llenarFicha(v) {
   fp.precioUSD.value = paraCampo(v.precioUSD);
   fp.precioARS.value = paraCampo(v.precioARS);
   fp.favorito.checked = !!v.favorito;
+  fp.unidad.value = String(v.unidad || 7);
   actualizarDesglose();
 }
 
@@ -587,6 +625,7 @@ function leerFicha() {
     precioUSD: moneda === 'USD' ? (leerNumero(fp.precioUSD.value) ?? 0) : null,
     precioARS: moneda === 'ARS' ? (leerNumero(fp.precioARS.value) ?? 0) : null,
     favorito: fp.favorito.checked,
+    unidad: Number(fp.unidad.value) || 7,
   };
 }
 
