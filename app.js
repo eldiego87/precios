@@ -113,11 +113,16 @@ function dibujarFiltros() {
 
   const boton = (valor, texto, n) =>
     `<li><button class="cat" data-filtro="${esc(valor)}" aria-current="${valor === estado.filtro}"><span>${esc(texto)}</span><span class="cant">${n}</span></button></li>`;
-  $('filtros').innerHTML = boton('todas', 'Todas', estado.productos.length)
-    + boton('favoritos', '★ Favoritos', estado.productos.filter((p) => p.favorito).length)
+  // Orden pedido por Diego: Favoritos y Servicios arriba; después Todas y el resto alfabético.
+  const fijas = cats.filter(([c]) => CATEGORIAS_ARRIBA.includes(c));
+  const resto = cats.filter(([c]) => !CATEGORIAS_ARRIBA.includes(c));
+  $('filtros').innerHTML = boton('favoritos', '★ Favoritos', estado.productos.filter((p) => p.favorito).length)
+    + fijas.map(([c, n]) => boton(c, capitalizar(c), n)).join('')
     + '<li class="separador"></li>'
-    + cats.map(([c, n]) => boton(c, capitalizar(c), n)).join('');
+    + boton('todas', 'Todas', estado.productos.length)
+    + resto.map(([c, n]) => boton(c, capitalizar(c), n)).join('');
 }
+const CATEGORIAS_ARRIBA = ['SERVICIOS'];
 
 $('filtros').addEventListener('click', (e) => {
   const b = e.target.closest('[data-filtro]');

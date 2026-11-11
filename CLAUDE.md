@@ -40,7 +40,7 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - Datos de negocio (costos, márgenes, proveedores) **nunca** en el repo (es público para Pages).
 
 ## Interfaz (pedidos de Diego)
-- Uso principal en PC, horizontal. Categorías a la izquierda, orden alfabético.
+- Uso principal en PC, horizontal. Categorías a la izquierda: ★ Favoritos, Servicios, ─, Todas, resto alfabético (`CATEGORIAS_ARRIBA`).
 - Lista: precio final en $ grande y **US$ final** chico (el "+ IVA" solo en la ficha interna).
 - Ficha de producto en **solo lectura**; se edita tildando "Habilitar edición".
 - Cotización rápida (derecha): Agregar → cantidad (1 por defecto, admite decimales) en el ítem y en la tabla;
