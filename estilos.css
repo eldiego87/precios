@@ -235,15 +235,116 @@ button, input { font: inherit; color: inherit; }
   font-size: 14px; box-shadow: var(--sombra);
 }
 
-/* Pantallas angostas: provisorio hasta hacer la versión móvil */
-@media (max-width: 1000px) {
-  .app { height: auto; grid-template-columns: 1fr; grid-template-areas: "barra" "cat" "prod" "cot"; }
-  .barra { flex-wrap: wrap; }
-  .titulo { width: auto; }
-  #busqueda { order: 10; flex-basis: 100%; }
-  .categorias { border-right: 0; border-bottom: 1px solid var(--borde); }
-  #filtros { display: flex; gap: 4px; overflow-x: auto; }
-  .cat { white-space: nowrap; }
-  #filtros li.separador { display: none; }
-  .columna { overflow: visible; }
+/* ================================================================
+   Celular y tablet vertical (≤ 900 px)
+   - Barra arriba fija con buscador a todo el ancho.
+   - Categorías en un desplegable.
+   - Cotización: barra fija abajo; al tocarla se abre en pantalla completa.
+   ================================================================ */
+.solo-movil { display: none !important; }
+
+@media (max-width: 900px) {
+  .solo-movil { display: revert !important; }
+  .solo-movil[hidden] { display: none !important; }
+
+  body { font-size: 16px; }
+  .app { display: block; height: auto; }
+
+  .barra {
+    position: sticky; top: 0; z-index: 20;
+    flex-wrap: wrap; gap: 8px 10px; padding: 8px 12px;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  .titulo { width: auto; flex: 1; font-size: 17px; }
+  #btn-nuevo { display: none; }
+  #busqueda { order: 10; flex-basis: 100%; font-size: 16px; padding: 10px 12px; }
+
+  .categorias { display: none; }
+  .productos { padding: 10px 12px 110px; overflow: visible; }
+
+  .selector-cat { display: flex !important; align-items: center; gap: 8px; font-size: 13px; color: var(--suave); margin-bottom: 8px; }
+  #sel-categoria {
+    flex: 1; font: inherit; font-size: 16px; color: var(--texto);
+    padding: 9px 10px; border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie);
+  }
+
+  /* Producto: descripción arriba; precio y botón abajo */
+  .item {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "est texto texto" "est precio accion";
+    gap: 6px 10px; padding: 10px 12px;
+  }
+  .item > .estrella { grid-area: est; align-self: start; font-size: 22px; padding: 2px 4px; }
+  .item > div:nth-child(2) { grid-area: texto; }
+  .item-precio { grid-area: precio; text-align: left; }
+  .item-accion { grid-area: accion; }
+  .item-accion .btn { width: auto; padding: 8px 16px; font-size: 15px; }
+  .cantidad { font-size: 16px; width: 76px; padding: 7px 8px; }
+  .quitar { font-size: 24px; padding: 4px 8px; }
+
+  /* Cotización en pantalla completa (se abre desde la barra de abajo) */
+  .cotizador {
+    position: fixed; inset: 0; z-index: 40; border: 0;
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+    padding-top: max(12px, env(safe-area-inset-top));
+    overflow-y: auto; transform: translateY(100%); visibility: hidden;
+    transition: transform .22s ease, visibility 0s linear .22s;
+  }
+  body.cot-abierta .cotizador { transform: none; visibility: visible; transition: transform .22s ease; }
+  body.cot-abierta { overflow: hidden; }
+  .cot-encabezado { gap: 8px; flex-wrap: wrap; }
+  .cot-encabezado h2 { flex: 1; }
+  /* Tabla → tarjetas: nombre arriba; cantidad, costo, venta y quitar abajo */
+  .tabla-cot { font-size: 15px; }
+  .tabla-cot thead { display: none; }
+  .tabla-cot tr {
+    display: grid; grid-template-columns: 76px 1fr 1fr 36px; align-items: center;
+    grid-template-areas: "item item item item" "cant costo venta quitar";
+    gap: 4px 6px; padding: 10px 0; border-bottom: 1px solid var(--borde);
+  }
+  .tabla-cot td, .tabla-cot tfoot td { border: 0; padding: 0; }
+  .tabla-cot td:nth-child(1) { grid-area: cant; }
+  .tabla-cot td:nth-child(2) { grid-area: item; font-weight: 500; }
+  .tabla-cot td:nth-child(3) { grid-area: costo; }
+  .tabla-cot td:nth-child(4) { grid-area: venta; }
+  .tabla-cot td:nth-child(5) { grid-area: quitar; text-align: right; }
+  .tabla-cot [data-costo]::before, .tabla-cot [data-total-costo]::before,
+  .tabla-cot [data-venta]::before, .tabla-cot [data-total-venta]::before {
+    display: block; font-size: 11px; font-weight: 400; color: var(--suave); text-transform: uppercase; letter-spacing: .03em;
+  }
+  .tabla-cot [data-costo]::before, .tabla-cot [data-total-costo]::before { content: "Costo"; }
+  .tabla-cot [data-venta]::before, .tabla-cot [data-total-venta]::before { content: "Venta"; }
+  .tabla-cot tfoot tr { grid-template-areas: "item item item item" "cant costo venta quitar"; border-bottom: 0; border-top: 2px solid var(--texto); }
+  .tabla-cot .cantidad { width: 70px; }
+
+  .barra-cot {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex !important; justify-content: space-between; align-items: center; gap: 12px;
+    border: 0; border-radius: 14px 14px 0 0; cursor: pointer; text-align: left;
+    background: var(--acento); color: var(--acento-texto);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 16px rgb(0 0 0 / 18%);
+  }
+  .barra-cot[hidden] { display: none !important; }
+  .barra-cot span { display: flex; flex-direction: column; }
+  .barra-cot small { opacity: .85; font-size: 12px; }
+  .bc-der { text-align: right; font-variant-numeric: tabular-nums; }
+  .bc-der strong { font-size: 18px; }
+
+  .aviso { bottom: 96px; }
+
+  /* Diálogos casi a pantalla completa */
+  .dialogo { width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .dialogo form { padding: 16px; }
+  .dialogo input:not([type=radio]):not([type=checkbox]):not([type=file]) { font-size: 16px; }
+}
+
+@media (max-width: 520px) {
+  .grilla, .grilla.tres { grid-template-columns: 1fr 1fr; }
+  .grilla.tres label:last-child { grid-column: 1 / -1; }
+  .desglose th, .desglose td { padding: 6px 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cotizador { transition: none !important; }
 }

@@ -121,7 +121,24 @@ function dibujarFiltros() {
     + '<li class="separador"></li>'
     + boton('todas', 'Todas', estado.productos.length)
     + resto.map(([c, n]) => boton(c, capitalizar(c), n)).join('');
+
+  // Mismo orden en el desplegable del celular.
+  const opcion = (valor, texto, n) =>
+    `<option value="${esc(valor)}" ${valor === estado.filtro ? 'selected' : ''}>${esc(texto)} (${n})</option>`;
+  $('sel-categoria').innerHTML = opcion('favoritos', '★ Favoritos', estado.productos.filter((p) => p.favorito).length)
+    + fijas.map(([c, n]) => opcion(c, capitalizar(c), n)).join('')
+    + '<option disabled>──────────</option>'
+    + opcion('todas', 'Todas', estado.productos.length)
+    + resto.map(([c, n]) => opcion(c, capitalizar(c), n)).join('');
 }
+
+$('sel-categoria').addEventListener('change', (e) => {
+  estado.filtro = e.target.value;
+  if (estado.busqueda) { estado.busqueda = ''; $('busqueda').value = ''; }
+  dibujarFiltros();
+  dibujarLista();
+  window.scrollTo(0, 0);
+});
 const CATEGORIAS_ARRIBA = ['SERVICIOS'];
 
 $('filtros').addEventListener('click', (e) => {
@@ -317,7 +334,9 @@ function calcularLinea(l) {
 function dibujarCotizador() {
   const cont = $('cotizador');
   $('btn-vaciar').hidden = !estado.cotizador.length;
+  $('barra-cot').hidden = !estado.cotizador.length;
   if (!estado.cotizador.length) {
+    if (document.body.classList.contains('cot-abierta')) cerrarCotizadorMovil();
     cont.innerHTML = '<p class="cot-vacia">Tocá <strong>Agregar</strong> en un producto para armar una cotización: vas a ver el costo de los materiales y el precio de venta.</p>';
     return;
   }
@@ -359,6 +378,12 @@ function actualizarNumerosCotizador() {
   set('[data-total-costo]', pesos(costoTotal));
   set('[data-total-venta]', pesos(ventaTotal));
 
+  // Barra de abajo (celular)
+  const n = estado.cotizador.length;
+  $('bc-items').textContent = `${n} ${n === 1 ? 'ítem' : 'ítems'}`;
+  $('bc-venta').textContent = pesos(ventaTotal);
+  $('bc-costo').textContent = `costo ${pesos(costoTotal)}${sinCosto ? ' *' : ''}`;
+
   const ganancia = ventaTotal - costoTotal;
   const pct = costoTotal > 0 ? `${numero(Math.round((ganancia / costoTotal) * 1000) / 10)}% sobre el costo. ` : '';
   set('[data-resumen]', `
@@ -388,6 +413,21 @@ document.addEventListener('keydown', (e) => {
 $('cotizador').addEventListener('click', (e) => {
   if (e.target.closest('[data-quitar]')) quitarDelCotizador(e.target.closest('tr').dataset.id);
 });
+// Celular: la cotización se abre en pantalla completa. Se agrega un paso al historial
+// para que el botón "atrás" del teléfono la cierre en vez de salir de la página.
+function abrirCotizadorMovil() {
+  document.body.classList.add('cot-abierta');
+  history.pushState({ cotizador: true }, '');
+}
+function cerrarCotizadorMovil() {
+  if (!document.body.classList.contains('cot-abierta')) return;
+  document.body.classList.remove('cot-abierta');
+  if (history.state?.cotizador) history.back();
+}
+$('barra-cot').addEventListener('click', abrirCotizadorMovil);
+$('btn-cerrar-cot').addEventListener('click', cerrarCotizadorMovil);
+window.addEventListener('popstate', () => document.body.classList.remove('cot-abierta'));
+
 $('btn-vaciar').addEventListener('click', () => {
   if (!confirm('¿Vaciar la cotización?')) return;
   estado.cotizador = [];
@@ -635,6 +675,7 @@ $('btn-borrar').addEventListener('click', async () => {
 });
 
 $('btn-nuevo').addEventListener('click', () => abrirFicha());
+$('btn-nuevo-menu').addEventListener('click', () => abrirFicha());
 
 // ---------------------------------------------------------------- importar / exportar
 let importacion = null;

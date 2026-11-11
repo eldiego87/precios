@@ -31,6 +31,7 @@
       <details class="menu">
         <summary class="btn icono" aria-label="Menú">⋯</summary>
         <div class="menu-lista">
+          <button id="btn-nuevo-menu" class="solo-movil">+ Nuevo producto</button>
           <button id="btn-importar">Importar desde Excel…</button>
           <button id="btn-exportar">Descargar Excel (copia)</button>
           <hr>
@@ -45,6 +46,9 @@
     </nav>
 
     <main class="columna productos">
+      <label class="selector-cat solo-movil">Categoría
+        <select id="sel-categoria"></select>
+      </label>
       <p id="resumen" class="resumen"></p>
       <ul id="lista" class="lista"></ul>
       <div id="vacio" class="vacio" hidden></div>
@@ -52,6 +56,7 @@
 
     <aside class="columna cotizador" aria-label="Cotización rápida">
       <div class="cot-encabezado">
+        <button id="btn-cerrar-cot" class="btn chico solo-movil">← Volver a la lista</button>
         <h2>Cotización rápida</h2>
         <button id="btn-vaciar" class="btn chico" hidden>Vaciar</button>
       </div>
@@ -143,6 +148,12 @@
 
   <datalist id="lista-categorias"></datalist>
   <datalist id="lista-proveedores"></datalist>
+  <!-- Celular: resumen de la cotización fijo abajo; al tocarlo se abre completa -->
+  <button id="barra-cot" class="barra-cot solo-movil" hidden aria-label="Ver cotización">
+    <span class="bc-izq"><strong id="bc-items">0 ítems</strong><small>Tocá para ver el detalle</small></span>
+    <span class="bc-der"><strong id="bc-venta">$ 0</strong><small id="bc-costo">costo $ 0</small></span>
+  </button>
+
   <div id="aviso" class="aviso" role="status" hidden></div>
 
   <script type="module" src="app.js"></script>

@@ -5,7 +5,7 @@ Reemplaza su Google Sheets "PRECIOS". Interfaz en español con voseo. Diego no e
 explicar simple y guiarlo paso a paso (ver `../form3/CLAUDE.md`, mismo esquema y forma de trabajo).
 
 ## Etapas
-1. **Lista de precios web** ← actual. PC primero (3 columnas: categorías | productos | cotización rápida); versión móvil pendiente.
+1. **Lista de precios web** ← actual. PC: 3 columnas (categorías | productos | cotización rápida). Celular/tablet (≤ 900 px): misma página adaptable.
 2. Armado de factura/presupuesto (buscar ítems, cantidades, descuento 10% opcional, totales)
 3. Facturación real por **web service de ARCA (WSFE)** con certificado; primero homologación.
    Necesita parte servidor (Cloud Functions → plan Blaze: consultarlo con Diego antes).
@@ -56,6 +56,13 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   **ArgentinaDatos NO sirve**: difería del BNA (1/10/2026: 1540 vs 1545 BNA). Diego vio 1535 para el 1/10 (pendiente aclarar).
 - Idea pendiente: calendario + botón "primer día hábil del mes" (feriados en api.argentinadatos.com/v1/feriados/AAAA).
 
+## Celular (≤ 900 px, mismo código)
+- Barra fija arriba con buscador a todo el ancho; "+ Nuevo producto" pasa al menú ⋯.
+- Categorías en `<select>` con el mismo orden que la columna de PC.
+- Cotización: barra fija abajo (ítems, venta, costo); al tocarla se abre a pantalla completa
+  (`body.cot-abierta`, `history.pushState` para que "atrás" la cierre). La tabla se vuelve tarjetas.
+- Firefox headless no avanza transiciones: `control.js` las desactiva en el paso `movil-cot-abierta`.
+
 ## Planilla original (PRECIOS.xlsx)
 Hoja "Tabla Original": CAEGORIA(sic), CODIGO, PRODUCTO, PRECIO U$S (=COSTO×%), IVA, FINAL, PROVEEDOR,
 COSTO, %, PRECIO (=U$S×cotización, o fijo en $ si U$S=0), IVA, FINAL. Cotización en " Busqueda"!D2.
@@ -63,7 +70,7 @@ Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios
 
 ## Pruebas
 `python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|vacio"`
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).
