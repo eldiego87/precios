@@ -25,6 +25,10 @@ Descartado: embeber ARCA en un iframe (la política de mismo origen impide compl
 | `firebase-config.js` | Config pública; `null` = muestra "falta configurar". |
 | `_prueba/` | **No se sube** (.gitignore). Stubs de Firebase en memoria + `control.js` que importa `PRECIOS.xlsx` y conduce la app por `?paso=`; `servidor.py` (puerto 8765, `/demora` retrasa el load para las capturas). |
 
+## Firebase
+Proyecto `casastda-precios` (cuenta eldiego87@gmail.com), plan Spark gratis, Firestore `southamerica-east1`,
+Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze sin que Diego lo pida.
+
 ## Modelo de datos (Firestore)
 - `usuarios/{uid}`: `cotizacion` (dólar, carga manual), `cotizacionFecha` (ISO).
 - `usuarios/{uid}/productos/{id}`: `codigo`, `descripcion`, `categoria` (MAYÚSCULAS, conserva Ñ), `proveedor`,
