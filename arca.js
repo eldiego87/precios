@@ -98,8 +98,14 @@ function marcador() {
     }
 
     let t = '';
-    try { t = (await navigator.clipboard.readText()) || ''; } catch (e) { /* sin permiso */ }
-    if (!t.startsWith(P1) && !t.startsWith(P0)) t = prompt('Pegá acá (Ctrl+V) lo que copiaste con "Copiar" en la lista de precios:') || '';
+    let bloqueado = false;
+    try { t = ((await navigator.clipboard.readText()) || '').trim(); } catch (e) { bloqueado = true; }
+    if (!t.startsWith(P1) && !t.startsWith(P0)) {
+      const motivo = bloqueado
+        ? 'El navegador no deja leer el portapapeles (permitilo con el ícono 📋 de la barra de direcciones).'
+        : 'En el portapapeles no hay una cotización: ¿tocaste "📋 Copiar" en la lista de precios después de copiar otra cosa?';
+      t = prompt(motivo + '\n\nPodés pegarla acá con Ctrl+V:') || '';
+    }
     t = t.trim();
     if (!t) return;
     let datos = null;
