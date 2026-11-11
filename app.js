@@ -6,6 +6,18 @@ import {
 } from './calculo.js';
 import { UNIDADES, nombreUnidad, textoParaArca, codigoMarcador } from './arca.js';
 
+// Número de estimación comercial: AAMMDDHHMM del primer guardado (igual que en pdf.js).
+const dosC = (n) => String(n).padStart(2, '0');
+const codigoFechaHora = (d) => `${String(d.getFullYear()).slice(2)}${dosC(d.getMonth() + 1)}${dosC(d.getDate())}${dosC(d.getHours())}${dosC(d.getMinutes())}`;
+/** Si ya existe (varias guardadas en el mismo minuto), se le suma un minuto hasta que sea único. */
+function codigoUnico(fecha, excluirId) {
+  const d = new Date(fecha);
+  const usados = new Set(estado.cotizaciones.filter((c) => c.id !== excluirId).map((c) => c.codigo || (c.fecha ? codigoFechaHora(new Date(c.fecha)) : '')));
+  let cod = codigoFechaHora(d);
+  while (usados.has(cod)) { d.setMinutes(d.getMinutes() + 1); cod = codigoFechaHora(d); }
+  return cod;
+}
+
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -586,6 +598,7 @@ async function guardarCotizacion() {
     id: ed?.id,
     numero,
     fecha: ed?.fecha || ahora,
+    codigo: ed?.codigo || codigoUnico(ed?.fecha || ahora, ed?.id),
     fechaFactura: estado.cotFecha || hoyYMD(),
     estado: ed?.estado || 'pendiente',
     facturadaEn: ed?.facturadaEn || null,
@@ -620,7 +633,7 @@ function abrirCotizacionGuardada(c, { sinPreguntar = false } = {}) {
   estado.cotizador = (c.items || []).map((it) => ({ id: nuevoIdLinea(), fija: true, ...it }));
   estado.cotCliente = c.cliente || null;
   estado.cotFecha = c.fechaFactura || (c.fecha ? aYMD(new Date(c.fecha)) : hoyYMD());
-  estado.cotEditando = { id: c.id, numero: c.numero, estado: c.estado, fecha: c.fecha, dolar: c.dolar, facturadaEn: c.facturadaEn || null };
+  estado.cotEditando = { id: c.id, numero: c.numero, codigo: c.codigo || null, estado: c.estado, fecha: c.fecha, dolar: c.dolar, facturadaEn: c.facturadaEn || null };
   estado.cotCambios = false;
   guardarCotizador();
   dibujarLista();
@@ -812,6 +825,7 @@ function abrirFormCliente(c) {
   fc.cuit.value = c ? fmtCuit(c.cuit) : '';
   fc.condicionIva.value = c?.condicionIva || 'Consumidor Final';
   fc.domicilio.value = String(c?.domicilio || 1);
+  fc.razonSocial.value = c?.razonSocial || '';
   $('btn-cli-borrar').hidden = !c;
   $('cli-error').hidden = true;
   $('cli-elegir').hidden = true;
@@ -822,7 +836,7 @@ function abrirFormCliente(c) {
 function usarCliente(c) {
   const ed = estado.cotEditando;
   const cambia = !estado.cotCliente || estado.cotCliente.id !== c.id;
-  estado.cotCliente = { id: c.id, nombre: c.nombre, cuit: c.cuit || '', condicionIva: c.condicionIva || '', domicilio: c.domicilio || 1 };
+  estado.cotCliente = { id: c.id, nombre: c.nombre, cuit: c.cuit || '', condicionIva: c.condicionIva || '', domicilio: c.domicilio || 1, razonSocial: c.razonSocial || '' };
   if (ed && cambia && !estado.corregirCliente) {
     // Mismos ítems, precios y fecha para otro cliente: queda como cotización nueva; la guardada no se toca.
     estado.cotEditando = null;
@@ -863,7 +877,7 @@ fc.addEventListener('submit', async (e) => {
   const repetido = estado.clientes.find((x) => x.id !== clienteEditando?.id && normalizar(x.nombre) === normalizar(nombre));
   if (repetido) return error(`Ya existe un cliente con el código «${repetido.nombre}».`);
   if (cuit && cuit.length !== 11 && (cuit.length < 7 || cuit.length > 8)) return error('El CUIT tiene 11 números (o el DNI 7 u 8).');
-  const cliente = { id: clienteEditando?.id, nombre, cuit, condicionIva: fc.condicionIva.value, domicilio: Number(fc.domicilio.value) || 1 };
+  const cliente = { id: clienteEditando?.id, nombre, cuit, condicionIva: fc.condicionIva.value, domicilio: Number(fc.domicilio.value) || 1, razonSocial: fc.razonSocial.value.trim() };
   try {
     const id = await datos.guardarEn('clientes', cliente);
     const guardado = { ...cliente, id };

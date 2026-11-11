@@ -90,11 +90,15 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   (la guardada no se toca). Casilla "Corregir el cliente de la Nº…" en el diálogo para editar la existente.
   Pensado para facturar el mismo mantenimiento a varias clínicas: cambiar cliente → Guardar → repetir.
 
-## PDF de cotización
+## PDF "ESTIMACIÓN COMERCIAL" (pedido de Diego: NO es cotización formal)
 - Botón 📄 PDF en la lista de cotizaciones y en la cotización guardada abierta (usa lo GUARDADO; avisa si hay cambios).
 - Estilo de la orden de servicio (form3): azul (0,74,146), fondo (245,248,251), recuadros redondeados, logo.
   Dibujado con jsPDF (no imagen de fondo) → la tabla pagina sola, repite encabezado y numera páginas.
-- Contenido: Nº, fecha de factura, cliente (código + CUIT + condición IVA), Cant. (kg/l si corresponde),
+- Título "ESTIMACIÓN COMERCIAL" (2 renglones). Nº = `codigo` AAMMDDHHMM del primer guardado (único: si choca, +1 min;
+  viejas sin `codigo` → desde `fecha`). El Nº 0001 interno sigue en la app. Archivo:
+  "ESTIMACION COMERCIAL - <codigo> - <razón social>.pdf". Cliente: `razonSocial` (manual; no hay servicio gratuito
+  de padrón con CORS — tangofactura fuera de servicio) o el código. Leyenda "IMPORTANTE: …" (texto exacto de Diego) debajo del total.
+- Contenido: fecha de factura, cliente (razón social + CUIT + condición IVA), Cant. (kg/l si corresponde),
   Descripción, Precio unit., Total por ítem y TOTAL. "Precios finales en pesos argentinos."
 - Prueba: paso `pdf` / `pdf-largo` en `_prueba/control.js` (intercepta `jsPDF.API.save` y manda el PDF al
   servidor de prueba → `_prueba/salida.pdf`; ver con `pdftoppm -r 70 -png`).

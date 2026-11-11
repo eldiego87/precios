@@ -37,8 +37,17 @@ function cargarLogo() {
 
 const fmtFecha = (ymd) => (ymd ? ymd.split('-').reverse().join('/') : '');
 const fmtCuit = (c) => { const d = String(c || '').replace(/\D/g, ''); return d.length === 11 ? `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}` : d; };
-const nro = (n) => String(n || 0).padStart(4, '0');
-const nombreArchivo = (c) => `Cotizacion-${nro(c.numero)}${c.cliente?.nombre ? '-' + c.cliente.nombre.replace(/[^\w\-]+/g, '_') : ''}.pdf`;
+const dos = (n) => String(n).padStart(2, '0');
+/** Número de la estimación: AAMMDDHHMM del momento en que se guardó por primera vez. */
+export const codigoFechaHora = (d) => `${String(d.getFullYear()).slice(2)}${dos(d.getMonth() + 1)}${dos(d.getDate())}${dos(d.getHours())}${dos(d.getMinutes())}`;
+const codigoDe = (c) => c.codigo || (c.fecha ? codigoFechaHora(new Date(c.fecha)) : '');
+const razonSocial = (c) => c.cliente?.razonSocial || c.cliente?.nombre || '';
+const nombreArchivo = (c) => `ESTIMACION COMERCIAL - ${codigoDe(c)}${razonSocial(c) ? ' - ' + razonSocial(c).replace(/\.+$/, '') : ''}.pdf`.replace(/[\\/:*?"<>|]+/g, '-');
+
+const LEYENDA = [
+  'El presente documento constituye una estimación orientativa de los valores correspondientes a los productos y/o servicios solicitados, y no representa una cotización comercial formal ni implica compromiso de contratación.',
+  'Para obtener una cotización oficial, con detalle de las condiciones de pago, tipo de cambio aplicable, plazos y período de validez de la oferta, deberá solicitarse su emisión tomando como referencia el presente documento.',
+];
 
 /** Genera y descarga el PDF. c = cotización guardada (numero, fechaFactura, cliente, items, totales). */
 export async function descargarPdfCotizacion(c) {
@@ -51,11 +60,12 @@ export async function descargarPdfCotizacion(c) {
   if (img) doc.addImage(img, 'PNG', M, 9, 70, 25);
   color(BORDE, 'draw'); doc.setLineWidth(0.6);
   doc.line(88, 9, 88, 35); doc.line(160, 9, 160, 35);
-  color(AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(24);
-  doc.text('COTIZACIÓN', 124, 21, { align: 'center' });
-  color(AZUL, 'fill'); doc.roundedRect(102, 25, 44, 9, 2, 2, 'F');
+  color(AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+  doc.text('ESTIMACIÓN', 124, 15.5, { align: 'center' });
+  doc.text('COMERCIAL', 124, 22.5, { align: 'center' });
+  color(AZUL, 'fill'); doc.roundedRect(99, 26, 50, 9, 2, 2, 'F');
   color([255, 255, 255]); doc.setFontSize(13);
-  doc.text(`Nº ${nro(c.numero)}`, 124, 31.4, { align: 'center' });
+  doc.text(`Nº ${codigoDe(c)}`, 124, 32.4, { align: 'center' });
   color(GRIS); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
   doc.text('FECHA', 179, 17, { align: 'center' });
   color(TEXTO); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
@@ -67,7 +77,7 @@ export async function descargarPdfCotizacion(c) {
   color(AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
   doc.text('CLIENTE', M + 5, 48);
   color(TEXTO); doc.setFontSize(15);
-  doc.text(c.cliente?.nombre || '—', M + 5, 56);
+  doc.text(doc.splitTextToSize(razonSocial(c) || '—', 115)[0], M + 5, 56);
   if (c.cliente?.cuit) {
     doc.setFontSize(10); doc.setFont('helvetica', 'bold');
     doc.text(`CUIT ${fmtCuit(c.cliente.cuit)}`, W - M - 5, 51, { align: 'right' });
@@ -93,7 +103,7 @@ export async function descargarPdfCotizacion(c) {
     doc.addPage();
     if (img) doc.addImage(img, 'PNG', M, 8, 42, 15);
     color(AZUL); doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
-    doc.text(`Cotización Nº ${nro(c.numero)} (continuación)`, W - M, 17, { align: 'right' });
+    doc.text(`Estimación comercial Nº ${codigoDe(c)} (continuación)`, W - M, 17, { align: 'right' });
     return encabezadoTabla(28);
   };
 
@@ -130,6 +140,34 @@ export async function descargarPdfCotizacion(c) {
   color(GRIS); doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5);
   doc.text('Precios finales en pesos argentinos.', M, y + 5);
   doc.text(`${(c.items || []).length} ${(c.items || []).length === 1 ? 'ítem' : 'ítems'}`, M, y + 10);
+  y += 13;
+
+  // ---- Leyenda IMPORTANTE
+  doc.setFontSize(9);
+  const anchoLeyenda = ANCHO - 10;
+  const parrafos = LEYENDA.map((t, i) => doc.splitTextToSize((i === 0 ? 'IMPORTANTE: ' : '') + t, anchoLeyenda));
+  const altoLeyenda = parrafos.reduce((a, p) => a + p.length * 4.2, 0) + 4 + 9;
+  if (y + 6 + altoLeyenda > LIMITE) { doc.addPage(); y = 14; } else { y += 6; }
+  color(FONDO, 'fill'); color(BORDE, 'draw'); doc.setLineWidth(0.3);
+  doc.roundedRect(M, y, ANCHO, altoLeyenda, 3, 3, 'FD');
+  let yl = y + 7;
+  parrafos.forEach((lineas, i) => {
+    lineas.forEach((linea, j) => {
+      if (i === 0 && j === 0) {
+        // "IMPORTANTE:" en negrita y azul; el resto del renglón normal
+        color(AZUL); doc.setFont('helvetica', 'bold');
+        doc.text('IMPORTANTE:', M + 5, yl);
+        const ancho = doc.getTextWidth('IMPORTANTE: ');
+        color(TEXTO); doc.setFont('helvetica', 'normal');
+        doc.text(linea.replace(/^IMPORTANTE:\s*/, ''), M + 5 + ancho, yl);
+      } else {
+        color(TEXTO); doc.setFont('helvetica', 'normal');
+        doc.text(linea, M + 5, yl);
+      }
+      yl += 4.2;
+    });
+    yl += 4;
+  });
 
   // ---- Pie con número de página
   const paginas = doc.getNumberOfPages();
@@ -137,7 +175,7 @@ export async function descargarPdfCotizacion(c) {
     doc.setPage(p);
     color(BORDE, 'draw'); doc.setLineWidth(0.3); doc.line(M, 285, W - M, 285);
     color(GRIS); doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
-    doc.text(`Casas Tratamiento de Agua · Cotización Nº ${nro(c.numero)}`, M, 290);
+    doc.text(`Casas Tratamiento de Agua · Estimación comercial Nº ${codigoDe(c)}`, M, 290);
     doc.text(`Página ${p} de ${paginas}`, W - M, 290, { align: 'right' });
   }
 
