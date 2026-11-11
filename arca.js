@@ -13,10 +13,9 @@
 
 export const PREFIJO = 'ARCA-ITEMS1';
 
-// Unidades de ARCA que tienen sentido para Casas TDA (código ARCA → nombre).
+// Unidades de ARCA que usa Diego (código ARCA → nombre).
 export const UNIDADES = [
-  [7, 'unidades'], [2, 'metros'], [1, 'kilogramos'], [5, 'litros'],
-  [3, 'metros cuadrados'], [8, 'pares'], [96, 'packs'], [9, 'docenas'],
+  [7, 'unidades'], [98, 'otras unidades'], [1, 'kilogramos'], [5, 'litros'],
 ];
 export const nombreUnidad = (cod) => (UNIDADES.find(([c]) => c === Number(cod)) || UNIDADES[0])[1];
 

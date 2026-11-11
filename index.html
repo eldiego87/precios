@@ -22,6 +22,7 @@
     <header class="barra">
       <h1 class="titulo">Lista de precios</h1>
       <input id="busqueda" type="search" placeholder="Buscar por código, nombre, categoría o proveedor…  (Esc borra)" autocomplete="off" spellcheck="false">
+      <button id="btn-cotizaciones" class="btn" title="Cotizaciones guardadas">Cotizaciones <span id="insignia-pend" class="insignia" hidden></span></button>
       <button id="btn-nuevo" class="btn">+ Nuevo producto</button>
       <button id="btn-cotizacion" class="cotizacion" title="Cotización del dólar">
         <span id="cot-etiqueta" class="cot-etiqueta">Dólar BNA</span>
@@ -58,7 +59,7 @@
     <aside class="columna cotizador" aria-label="Cotización rápida">
       <div class="cot-encabezado">
         <button id="btn-cerrar-cot" class="btn chico solo-movil">← Volver a la lista</button>
-        <h2>Cotización rápida</h2>
+        <h2 id="titulo-cot">Cotización rápida</h2>
         <button id="btn-vaciar" class="btn chico" hidden>Vaciar</button>
       </div>
       <div id="cotizador"></div>
@@ -147,6 +148,75 @@
         <button type="button" class="btn" data-cerrar>Cancelar</button>
         <button type="submit" id="btn-confirmar-importar" class="btn primario" disabled>Importar</button>
       </div>
+    </form>
+  </dialog>
+
+  <!-- Elegir / crear cliente -->
+  <dialog id="dlg-cliente" class="dialogo">
+    <form id="form-cliente" method="dialog">
+      <h2>Cliente</h2>
+      <div id="cli-elegir">
+        <input id="cli-buscar" type="search" placeholder="Buscar cliente por nombre o CUIT…" autocomplete="off">
+        <ul id="cli-lista" class="cli-lista"></ul>
+        <button type="button" id="btn-cli-nuevo" class="btn">+ Nuevo cliente</button>
+      </div>
+      <div id="cli-formulario" class="campos" hidden>
+        <div class="grilla">
+          <label class="ancho">Nombre (referencia para vos) <input name="nombre" autocomplete="off"></label>
+          <label>CUIT / DNI <input name="cuit" inputmode="numeric" autocomplete="off" placeholder="20-12345678-9"></label>
+          <label>Condición frente al IVA <select name="condicionIva" id="sel-condicion"></select></label>
+        </div>
+        <p id="cli-error" class="error" hidden></p>
+        <div class="acciones">
+          <button type="button" id="btn-cli-borrar" class="btn peligro" hidden>Borrar cliente</button>
+          <span class="espacio"></span>
+          <button type="button" id="btn-cli-volver" class="btn">Volver</button>
+          <button type="submit" class="btn primario">Guardar y usar</button>
+        </div>
+      </div>
+      <div class="acciones" id="cli-acciones">
+        <span class="espacio"></span>
+        <button type="button" class="btn" data-cerrar>Cerrar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Ítem provisorio (solo para esta cotización) -->
+  <dialog id="dlg-libre" class="dialogo">
+    <form id="form-libre" method="dialog">
+      <h2>Agregar ítem</h2>
+      <p class="nota">Solo para esta cotización: no se agrega a la lista de precios.</p>
+      <div class="grilla">
+        <label class="ancho">Descripción <input name="descripcion" required autocomplete="off"></label>
+        <label>Unidad <select name="unidad" id="sel-unidad-libre"></select></label>
+        <label>Cantidad <input name="cantidad" inputmode="decimal" autocomplete="off" value="1"></label>
+        <label class="ancho">Precio unitario final $ (lo que va a la factura) <input name="precio" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <p id="libre-error" class="error" hidden></p>
+      <div class="acciones">
+        <span class="espacio"></span>
+        <button type="button" class="btn" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn primario">Agregar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Cotizaciones guardadas -->
+  <dialog id="dlg-cotizaciones" class="dialogo grande">
+    <form method="dialog">
+      <div class="dlg-encabezado">
+        <h2>Cotizaciones guardadas</h2>
+        <button type="button" class="btn" data-cerrar>Cerrar</button>
+      </div>
+      <div class="cots-filtros">
+        <div class="pestanas" id="cots-pestanas">
+          <button type="button" data-estado="pendiente" aria-current="true">Pendientes</button>
+          <button type="button" data-estado="facturada">Facturadas</button>
+          <button type="button" data-estado="todas">Todas</button>
+        </div>
+        <input id="cots-buscar" type="search" placeholder="Buscar por cliente o número…" autocomplete="off">
+      </div>
+      <div id="cots-lista"></div>
     </form>
   </dialog>
 

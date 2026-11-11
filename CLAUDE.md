@@ -6,7 +6,7 @@ explicar simple y guiarlo paso a paso (ver `../form3/CLAUDE.md`, mismo esquema y
 
 ## Etapas
 1. **Lista de precios web** ← actual. PC: 3 columnas (categorías | productos | cotización rápida). Celular/tablet (≤ 900 px): misma página adaptable.
-2. Armado de factura/presupuesto (buscar ítems, cantidades, descuento 10% opcional, totales)
+2. Cotizaciones con cliente, ítems provisorios, guardado congelado y lista "línea de ensamblaje" ← hecho (11/11/2026)
 3. Facturación real por **web service de ARCA (WSFE)** con certificado; primero homologación.
    Necesita parte servidor (Cloud Functions → plan Blaze: consultarlo con Diego antes).
 4. Multiusuario para otros contribuyentes (delegación del servicio WSFE al CUIT de Diego), solo si funciona bien.
@@ -33,6 +33,8 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 
 ## Modelo de datos (Firestore)
 - `usuarios/{uid}`: última cotización BNA obtenida (`cotizacion`, `cotizacionFecha` = publicación, `cotizacionVia`). Respaldo si falla la consulta.
+- `usuarios/{uid}/clientes/{id}`, `usuarios/{uid}/cotizaciones/{id}`: ver sección Cotizaciones.
+- Reglas: `match /usuarios/{uid}/{coleccion}/{id}` con lista blanca de colecciones; al sumar una, actualizar reglas.
 - `usuarios/{uid}/productos/{id}`: `codigo`, `descripcion`, `categoria` (MAYÚSCULAS, conserva Ñ), `proveedor`,
   `moneda` (`USD`|`ARS`), `precioUSD` o `precioARS` (**sin IVA**), `costoUSD`, `margen` (informativos;
   costo × margen = precioUSD), `favorito`, `actualizado`.
@@ -64,6 +66,22 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   (`body.cot-abierta`, `history.pushState` para que "atrás" la cierre). La tabla se vuelve tarjetas.
 - Firefox headless no avanza transiciones: `control.js` las desactiva en el paso `movil-cot-abierta`.
 
+## Cotizaciones (decisiones de Diego)
+- Cliente: **nombre** (referencia propia; ARCA trae la razón social del CUIT), **CUIT/DNI** (se copia sin guiones),
+  **condición frente al IVA**. Colección `clientes`.
+- "+ Agregar ítem" = ítem provisorio (descripción, unidad, cantidad, precio unitario final $), solo para esa cotización.
+- Unidades: solo `unidades` (7), `otras unidades` (98), `kilogramos` (1), `litros` (5). Diego elige a mano por producto.
+- **Guardar cotización** = "pantallazo": colección `cotizaciones` con `numero` (máx+1), `fecha`, `estado`
+  (`pendiente`|`facturada`), `facturadaEn`, `cliente` (copia), `dolar` {valor, fuente, fecha}, `items`
+  [{productoId, codigo, descripcion, unidad, precio, costo, cantidad}] y `totales`. Precios congelados; NO hay
+  "actualizar a hoy" (Diego lo pidió así: si quiere cambiar algo lo edita él).
+- Al abrir una guardada, sus líneas son "fijas" (`fija: true`); se pueden editar cantidades, quitar, agregar
+  productos (precio de hoy) o provisorios, y "Guardar cambios" conserva número, fecha y dólar originales.
+- Lista "Cotizaciones" (línea de ensamblaje): Pendientes/Facturadas/Todas; por fila: copiar CUIT, 📋 Copiar
+  (para el marcador), ✓ Facturada / deshacer, Abrir, borrar.
+- La cotización abierta (líneas, cliente, edición) se recuerda en localStorage `precios.cotizador.v2`.
+- Pendiente: que el marcador complete también el paso 2 de ARCA (receptor) — Diego quiere verlo después.
+
 ## Puente con ARCA (atajo hasta la etapa 3)
 - Cotización rápida → **Copiar para ARCA** → en RCEL, Factura C, paso 3 "Datos de la operación", el marcador
   completa descripción, cantidad, unidad y precio unitario; agrega filas con `insertarFilaDetalle()` de la página
@@ -83,7 +101,7 @@ Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios
 
 ## Pruebas
 `python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|vacio"`
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).

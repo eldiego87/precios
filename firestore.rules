@@ -11,12 +11,13 @@ service cloud.firestore {
         && request.auth.token.email in ['eldiego87@gmail.com'];
     }
 
-    // Cada usuario solo ve y modifica lo suyo.
+    // Cada usuario solo ve y modifica lo suyo: su configuración y sus colecciones.
     match /usuarios/{uid} {
       allow read, write: if permitido() && request.auth.uid == uid;
 
-      match /productos/{id} {
-        allow read, write: if permitido() && request.auth.uid == uid;
+      match /{coleccion}/{id} {
+        allow read, write: if permitido() && request.auth.uid == uid
+          && coleccion in ['productos', 'clientes', 'cotizaciones'];
       }
     }
   }

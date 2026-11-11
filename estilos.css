@@ -365,3 +365,54 @@ button, input { font: inherit; color: inherit; }
 kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--fondo); }
 .alternativa { margin-top: 10px; background: var(--fondo); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
 .alternativa ol { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- Cliente, ítem provisorio y cotizaciones guardadas ---------- */
+.insignia { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: var(--favorito); color: #fff; font-size: 12px; font-weight: 700; text-align: center; }
+#titulo-cot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.estado-cot { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+.estado-cot.pendiente { background: color-mix(in srgb, var(--favorito) 18%, transparent); color: var(--favorito); }
+.estado-cot.facturada { background: color-mix(in srgb, var(--positivo) 18%, transparent); color: var(--positivo); }
+.sin-guardar { font-size: 11px; font-weight: 400; color: var(--peligro); }
+.cot-cliente { margin-bottom: 10px; }
+.cliente-sel { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; background: var(--fondo); border-radius: 10px; padding: 8px 12px; }
+.cliente-sel small { display: block; color: var(--suave); font-size: 12px; }
+.cliente-cuit { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cot-agregar { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.cot-acciones .btn.primario { flex: 1 1 auto; }
+
+.cli-lista { list-style: none; margin: 10px 0; padding: 0; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.cli-lista li { display: flex; align-items: center; gap: 8px; }
+.cli-elegir { flex: 1; text-align: left; background: var(--fondo); border: 1px solid transparent; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.cli-elegir:hover { border-color: var(--acento); }
+.cli-elegir small { display: block; color: var(--suave); font-size: 12px; }
+#cli-buscar, #cots-buscar { width: 100%; padding: 9px 12px; border: 1px solid var(--borde); border-radius: 8px; background: var(--fondo); font-size: 15px; }
+
+.dialogo.grande { width: min(1100px, calc(100vw - 32px)); }
+.cots-filtros { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cots-filtros #cots-buscar { flex: 1; min-width: 200px; width: auto; }
+.pestanas { display: inline-flex; border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; }
+.pestanas button { background: var(--superficie); border: 0; padding: 7px 14px; cursor: pointer; }
+.pestanas button + button { border-left: 1px solid var(--borde); }
+.pestanas button[aria-current="true"] { background: var(--acento); color: var(--acento-texto); font-weight: 600; }
+.tabla-cots { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla-cots th { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--suave); text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--borde); }
+.tabla-cots th.num { text-align: right; }
+.tabla-cots td { padding: 8px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+.tabla-cots td small { display: block; color: var(--suave); font-size: 12px; }
+.tabla-cots tr.abierta td { background: var(--acento-suave); }
+.codigo-num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; white-space: nowrap; }
+.acciones-fila { display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: nowrap; }
+
+@media (max-width: 900px) {
+  .dialogo.grande { width: calc(100vw - 16px); }
+  .tabla-cots thead { display: none; }
+  .tabla-cots tr { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--borde); }
+  .tabla-cots td { border: 0; padding: 0; }
+  .tabla-cots td:nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
+  .tabla-cots td:nth-child(4) { display: none; }
+  .tabla-cots td:nth-child(6) { grid-column: 1 / -1; }
+  .tabla-cots td:nth-child(7) { grid-column: 1 / -1; }
+  .tabla-cots .acciones-fila { justify-content: flex-start; flex-wrap: wrap; }
+  #btn-cotizaciones { padding: 6px 10px; margin-right: auto; }
+  .titulo { display: none; }
+}

@@ -69,6 +69,25 @@ export async function reemplazarProductos(lista) {
   }
 }
 
+// ---- Colecciones simples (clientes, cotizaciones): usuarios/{uid}/{coleccion}/{id}
+export async function cargarColeccion(nombre) {
+  const s = await getDocs(collection(db, 'usuarios', uid, nombre));
+  return s.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+/** Crea o actualiza un documento. Devuelve el id. */
+export async function guardarEn(nombre, objeto) {
+  const { id, ...datos } = limpiar(objeto);
+  const col = collection(db, 'usuarios', uid, nombre);
+  const ref = id ? doc(col, id) : doc(col);
+  await setDoc(ref, { ...datos, actualizado: serverTimestamp() });
+  return ref.id;
+}
+
+export async function borrarDe(nombre, id) {
+  await deleteDoc(doc(db, 'usuarios', uid, nombre, id));
+}
+
 /** Saca campos internos (los que empiezan con _) y los undefined. */
 function limpiar(p) {
   const out = {};
