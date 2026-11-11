@@ -5,7 +5,7 @@ Reemplaza su Google Sheets "PRECIOS". Interfaz en español con voseo. Diego no e
 explicar simple y guiarlo paso a paso (ver `../form3/CLAUDE.md`, mismo esquema y forma de trabajo).
 
 ## Etapas
-1. **Lista de precios web** ← actual
+1. **Lista de precios web** ← actual. PC primero (3 columnas: categorías | productos | cotización rápida); versión móvil pendiente.
 2. Armado de factura/presupuesto (buscar ítems, cantidades, descuento 10% opcional, totales)
 3. Facturación real por **web service de ARCA (WSFE)** con certificado; primero homologación.
    Necesita parte servidor (Cloud Functions → plan Blaze: consultarlo con Diego antes).
@@ -38,14 +38,22 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   cuando era RI y proveedores con "precio + IVA"); ese final es lo que factura. No re-discutir.
 - Datos de negocio (costos, márgenes, proveedores) **nunca** en el repo (es público para Pages).
 
+## Interfaz (pedidos de Diego)
+- Uso principal en PC, horizontal. Categorías a la izquierda, orden alfabético.
+- Lista: precio final en $ grande y **US$ final** chico (el "+ IVA" solo en la ficha interna).
+- Ficha de producto en **solo lectura**; se edita tildando "Habilitar edición".
+- Cotización rápida (derecha): Agregar → cantidad (1 por defecto, admite decimales) en el ítem y en la tabla;
+  columnas Cant. | Ítem | Costo total | Precio de venta + totales y diferencia. Costo = costoUSD × dólar × 1,21
+  (con IVA: el monotributista no lo recupera). Se guarda en localStorage del navegador.
+
 ## Planilla original (PRECIOS.xlsx)
 Hoja "Tabla Original": CAEGORIA(sic), CODIGO, PRODUCTO, PRECIO U$S (=COSTO×%), IVA, FINAL, PROVEEDOR,
 COSTO, %, PRECIO (=U$S×cotización, o fijo en $ si U$S=0), IVA, FINAL. Cotización en " Busqueda"!D2.
 Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios, avisa sin precio/descr./categoría.
 
 ## Pruebas
-`python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=390,844 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|editar|editar-ars|cotizacion|vacio"`
+`python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).

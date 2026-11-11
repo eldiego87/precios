@@ -18,6 +18,15 @@ export function precioFinal(p, cotizacion) {
   return precioSinIva(p, cotizacion) * (1 + IVA);
 }
 
+/**
+ * Costo en pesos CON IVA (lo que se le paga al proveedor; el monotributista no lo
+ * recupera). null si el producto no tiene costo cargado.
+ */
+export function costoFinal(p, cotizacion) {
+  if (p.moneda !== 'USD' || !(num(p.costoUSD) > 0)) return null;
+  return num(p.costoUSD) * num(cotizacion) * (1 + IVA);
+}
+
 export function num(v) {
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   if (v == null || v === '') return 0;
