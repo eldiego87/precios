@@ -23,9 +23,10 @@
       <h1 class="titulo">Lista de precios</h1>
       <input id="busqueda" type="search" placeholder="Buscar por código, nombre, categoría o proveedor…  (Esc borra)" autocomplete="off" spellcheck="false">
       <button id="btn-nuevo" class="btn">+ Nuevo producto</button>
-      <button id="btn-cotizacion" class="cotizacion" title="Cambiar la cotización del dólar">
-        <span class="cot-etiqueta">Dólar</span>
+      <button id="btn-cotizacion" class="cotizacion" title="Cotización del dólar">
+        <span id="cot-etiqueta" class="cot-etiqueta">Dólar BNA</span>
         <span id="cot-valor" class="cot-valor">—</span>
+        <span id="cot-fecha" class="cot-fecha"></span>
       </button>
       <details class="menu">
         <summary class="btn icono" aria-label="Menú">⋯</summary>
@@ -108,12 +109,18 @@
   <dialog id="dlg-cotizacion" class="dialogo chico">
     <form id="form-cotizacion" method="dialog">
       <h2>Cotización del dólar</h2>
-      <label>1 US$ = $ <input name="cotizacion" inputmode="decimal" required autocomplete="off"></label>
-      <p class="nota" id="cot-nota"></p>
+      <div id="cot-estado" class="cot-estado"></div>
+      <button type="button" id="btn-obtener" class="btn primario">Obtener cotización del Banco Nación</button>
+
+      <hr class="divisor">
+      <h3>Ingresar manualmente (temporal)</h3>
+      <label>1 US$ = $ <input name="cotizacion" inputmode="decimal" autocomplete="off" placeholder="ej. 1.535"></label>
+      <p class="nota">Se usa hasta que toques "Obtener cotización" o recargues la página.</p>
+      <p id="cot-error" class="error" hidden></p>
       <div class="acciones">
         <span class="espacio"></span>
-        <button type="button" class="btn" data-cerrar>Cancelar</button>
-        <button type="submit" class="btn primario">Guardar</button>
+        <button type="button" class="btn" data-cerrar>Cerrar</button>
+        <button type="submit" class="btn">Usar este valor</button>
       </div>
     </form>
   </dialog>

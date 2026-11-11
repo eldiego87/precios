@@ -100,6 +100,15 @@ button, input { font: inherit; color: inherit; }
 .cotizacion:hover { border-color: var(--acento); }
 .cot-etiqueta { font-size: 10px; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
 .cot-valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cot-fecha { font-size: 10px; color: var(--suave); font-variant-numeric: tabular-nums; }
+.cotizacion.manual { border-color: var(--favorito); background: color-mix(in srgb, var(--favorito) 14%, var(--superficie)); }
+.cotizacion.manual .cot-etiqueta { color: var(--favorito); font-weight: 700; }
+.cotizacion.vieja .cot-fecha { color: var(--peligro); }
+.cot-estado { background: var(--fondo); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.cot-estado strong { font-size: 18px; }
+.cot-estado.manual { border-left: 4px solid var(--favorito); }
+.dialogo h3 { margin: 0; font-size: 14px; }
+.divisor { border: 0; border-top: 1px solid var(--borde); margin: 2px 0; width: 100%; }
 
 .menu { position: relative; }
 .menu summary { list-style: none; }

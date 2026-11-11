@@ -11,7 +11,9 @@ const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const estado = {
   productos: [],
   cotizacion: 0,
-  cotizacionFecha: null,
+  cotizacionFecha: null, // ISO: cuándo la publicó el banco (o cuándo se escribió a mano)
+  cotizacionFuente: null, // 'bna' | 'guardada' | 'manual'
+  cotizacionVia: null, // servicio que la trajo (CriptoYa / DolarApi)
   filtro: 'todas', // 'todas' | 'favoritos' | nombre de categoría
   busqueda: '',
   cotizador: [], // [{ id, cantidad }] en el orden en que se agregaron
@@ -33,8 +35,11 @@ if (!datos.configurado()) {
     mostrarMensaje('Cargando tu lista…');
     try {
       const [config, productos] = await Promise.all([datos.cargarConfig(), datos.cargarProductos()]);
+      // Primero la última guardada; enseguida se consulta la actual del Banco Nación.
       estado.cotizacion = config.cotizacion || 0;
       estado.cotizacionFecha = config.cotizacionFecha || null;
+      estado.cotizacionVia = config.cotizacionVia || null;
+      estado.cotizacionFuente = 'guardada';
       estado.productos = productos.map(prepararProducto);
       estado.cotizador = cargarCotizadorGuardado();
       $('usuario-email').textContent = usuario.email;
@@ -42,6 +47,7 @@ if (!datos.configurado()) {
       $('app').hidden = false;
       dibujarTodo();
       $('busqueda').focus();
+      obtenerCotizacion({ silencioso: true });
     } catch (e) {
       console.error(e);
       const sinPermiso = e?.code === 'permission-denied';
@@ -76,7 +82,14 @@ function dibujarTodo() {
 }
 
 function dibujarCotizacion() {
-  $('cot-valor').textContent = estado.cotizacion ? '$ ' + numero(estado.cotizacion) : 'cargar';
+  const { cotizacion, cotizacionFecha, cotizacionFuente } = estado;
+  const manual = cotizacionFuente === 'manual';
+  $('cot-etiqueta').textContent = manual ? 'Dólar MANUAL' : 'Dólar BNA';
+  $('cot-valor').textContent = cotizacion ? '$ ' + numero(cotizacion) : 'obtener';
+  $('cot-fecha').textContent = manual ? 'temporal' : (cotizacionFecha ? fmtFecha(cotizacionFecha) : '');
+  $('btn-cotizacion').classList.toggle('manual', manual);
+  // Fecha en rojo si no es de hoy (en fin de semana es normal: muestra la del último día hábil).
+  $('btn-cotizacion').classList.toggle('vieja', !manual && !!cotizacion && (cotizacionFuente === 'guardada' || !esDeHoy(cotizacionFecha)));
 }
 
 function dibujarSugerencias() {
@@ -193,7 +206,7 @@ function dibujarLista() {
     : hayBusqueda ? ' (buscando en todas las categorías)'
       : estado.filtro !== 'todas' ? ` en ${capitalizar(estado.filtro)}` : '';
   $('resumen').textContent = `${lista.length} de ${total} productos${donde}`
-    + (estado.cotizacion ? '' : ' · Cargá la cotización del dólar para ver los precios en pesos');
+    + (estado.cotizacion ? '' : ' · Sin cotización del dólar: tocá «Dólar» arriba a la derecha');
 
   $('lista').innerHTML = lista.map(htmlProducto).join('');
 }
@@ -386,33 +399,88 @@ document.addEventListener('click', (e) => {
 });
 
 // ---------------------------------------------------------------- cotización del dólar
+// Fuentes posibles (estado.cotizacionFuente):
+//   'bna'      → recién traída del Banco Nación (billete, venta)
+//   'guardada' → la última del BNA guardada en Firebase (no se pudo traer la actual)
+//   'manual'   → escrita a mano; temporal: dura hasta "Obtener cotización" o recargar
+const fmtFecha = (iso) => new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const esDeHoy = (iso) => iso && new Date(iso).toDateString() === new Date().toDateString();
+
+function textoEstadoCotizacion() {
+  const { cotizacion, cotizacionFecha, cotizacionFuente, cotizacionVia } = estado;
+  if (!cotizacion) return 'Todavía no hay cotización. Tocá "Obtener cotización" o escribila a mano.';
+  if (cotizacionFuente === 'manual') return `<strong>$ ${numero(cotizacion)}</strong> · ingresada a mano (temporal).`;
+  const cuando = cotizacionFecha ? fmtFecha(cotizacionFecha) : '';
+  return `<strong>$ ${numero(cotizacion)}</strong> · Banco Nación, billete venta`
+    + `<br><span class="nota">Publicada ${cuando}${cotizacionVia ? ` (vía ${esc(cotizacionVia)})` : ''}`
+    + `${cotizacionFuente === 'guardada' ? '. No se pudo actualizar: es la última guardada.' : ''}</span>`;
+}
+
+async function obtenerCotizacion({ silencioso = false } = {}) {
+  const boton = $('btn-obtener');
+  boton.disabled = true;
+  boton.textContent = 'Consultando…';
+  $('cot-error').hidden = true;
+  try {
+    const { cotizacionBNA } = await import('./dolar.js');
+    const { valor, fecha, via } = await cotizacionBNA();
+    Object.assign(estado, { cotizacion: valor, cotizacionFecha: fecha.toISOString(), cotizacionFuente: 'bna', cotizacionVia: via });
+    redibujarPorCotizacion();
+    if (!silencioso) aviso(`Dólar Banco Nación: $ ${numero(valor)}`);
+    // Se guarda como respaldo por si otro día no se puede consultar.
+    datos.guardarConfig({ cotizacion: valor, cotizacionFecha: estado.cotizacionFecha, cotizacionVia: via }).catch(console.error);
+    return true;
+  } catch (err) {
+    console.error(err);
+    if (estado.cotizacionFuente !== 'manual' && estado.cotizacion) estado.cotizacionFuente = 'guardada';
+    redibujarPorCotizacion();
+    const msg = estado.cotizacion && estado.cotizacionFuente === 'guardada'
+      ? `No se pudo consultar el Banco Nación. Se usa la última guardada (${fmtFecha(estado.cotizacionFecha)}).`
+      : 'No se pudo consultar el Banco Nación. Probá de nuevo o escribila a mano.';
+    $('cot-error').textContent = msg;
+    $('cot-error').hidden = false;
+    aviso(msg);
+    return false;
+  } finally {
+    boton.disabled = false;
+    boton.textContent = 'Obtener cotización del Banco Nación';
+  }
+}
+
+function redibujarPorCotizacion() {
+  dibujarCotizacion(); dibujarLista(); dibujarCotizador();
+  $('cot-estado').innerHTML = textoEstadoCotizacion();
+  $('cot-estado').classList.toggle('manual', estado.cotizacionFuente === 'manual');
+}
+
 $('btn-cotizacion').addEventListener('click', () => {
   const f = $('form-cotizacion');
-  f.cotizacion.value = estado.cotizacion ? paraCampo(estado.cotizacion) : '';
-  $('cot-nota').textContent = estado.cotizacionFecha
-    ? `Última actualización: ${new Date(estado.cotizacionFecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}`
-    : 'Todos los precios en dólares se recalculan con este valor.';
+  f.cotizacion.value = estado.cotizacionFuente === 'manual' ? paraCampo(estado.cotizacion) : '';
+  $('cot-estado').innerHTML = textoEstadoCotizacion();
+  $('cot-estado').classList.toggle('manual', estado.cotizacionFuente === 'manual');
+  $('cot-error').hidden = true;
   $('dlg-cotizacion').showModal();
-  f.cotizacion.select();
+  $('btn-obtener').focus();
 });
 
-$('form-cotizacion').addEventListener('submit', async (e) => {
+$('btn-obtener').addEventListener('click', async () => {
+  if (await obtenerCotizacion()) $('dlg-cotizacion').close();
+});
+
+$('form-cotizacion').addEventListener('submit', (e) => {
   e.preventDefault();
   const valor = leerNumero(e.target.cotizacion.value);
-  if (!valor || valor <= 0) { e.target.cotizacion.focus(); return; }
-  const anterior = [estado.cotizacion, estado.cotizacionFecha];
-  estado.cotizacion = valor;
-  estado.cotizacionFecha = new Date().toISOString();
-  $('dlg-cotizacion').close();
-  dibujarCotizacion(); dibujarLista(); dibujarCotizador();
-  try {
-    await datos.guardarConfig({ cotizacion: estado.cotizacion, cotizacionFecha: estado.cotizacionFecha });
-    aviso(`Dólar actualizado: $ ${numero(valor)}`);
-  } catch {
-    [estado.cotizacion, estado.cotizacionFecha] = anterior;
-    dibujarCotizacion(); dibujarLista(); dibujarCotizador();
-    aviso('No se pudo guardar la cotización.');
+  if (!valor || valor <= 0) {
+    $('cot-error').textContent = 'Escribí un valor válido, por ejemplo 1.535 o 1535,50.';
+    $('cot-error').hidden = false;
+    e.target.cotizacion.focus();
+    return;
   }
+  // Manual = temporal: no se guarda en Firebase.
+  Object.assign(estado, { cotizacion: valor, cotizacionFecha: new Date().toISOString(), cotizacionFuente: 'manual', cotizacionVia: null });
+  $('dlg-cotizacion').close();
+  redibujarPorCotizacion();
+  aviso(`Usando dólar manual: $ ${numero(valor)}`);
 });
 
 // ---------------------------------------------------------------- ficha de producto
@@ -591,7 +659,7 @@ $('archivo').addEventListener('change', async (e) => {
     $('imp-resumen').innerHTML = `
       <strong>${productos.length} productos</strong> encontrados en la hoja "${esc(hoja)}"
       (${productos.length - enPesos} en dólares, ${enPesos} con precio fijo en pesos).<br>
-      ${cotizacion ? `Cotización del dólar en la planilla: <strong>$ ${numero(cotizacion)}</strong> (se va a usar esa).` : ''}
+      ${cotizacion ? `La planilla tiene el dólar a $ ${numero(cotizacion)}; no se usa: los precios se calculan con el del Banco Nación.` : ''}
       ${descartadas.length ? `<div>Se descartan:</div><ul>${descartadas.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
       ${avisos.length ? `<div>Para revisar después:</div><ul>${avisos.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
       ${estado.productos.length ? `<p class="alerta">Atención: se reemplazan los ${estado.productos.length} productos que tenés cargados ahora (los favoritos se conservan).</p>` : ''}`;
@@ -615,11 +683,6 @@ $('form-importar').addEventListener('submit', async (e) => {
     importacion.productos.forEach((p) => { if (favs.has(normalizar(p.codigo))) p.favorito = true; });
 
     await datos.reemplazarProductos(importacion.productos);
-    if (importacion.cotizacion) {
-      estado.cotizacion = importacion.cotizacion;
-      estado.cotizacionFecha = new Date().toISOString();
-      await datos.guardarConfig({ cotizacion: estado.cotizacion, cotizacionFecha: estado.cotizacionFecha });
-    }
     estado.productos = (await datos.cargarProductos()).map(prepararProducto);
     estado.cotizador = []; // los ids cambiaron
     guardarCotizador();
