@@ -146,6 +146,8 @@ function marcador() {
       nro.value = cli.cuit;
       cambio(nro);
       if (!(await esperarQue(() => $('razonsocialreceptor').value.trim() !== '', 12000))) { alert('ARCA no devolvió la razón social del CUIT ' + cli.cuit + '. Revisalo.'); return; }
+      const cc = d.querySelector('input[name=formaDePago][value="96"]') || $('formadepago4');
+      if (cc && !cc.checked) cc.click();
       const dom = $('domicilioreceptorcombo');
       const nDom = Number(cli.dom) || 1;
       if (dom && dom.offsetParent !== null) {
@@ -157,8 +159,6 @@ function marcador() {
         dom.value = reales[nDom - 1].value;
         cambio(dom);
       }
-      const cc = d.querySelector('input[name=formaDePago][value="96"]') || $('formadepago4');
-      if (cc && !cc.checked) cc.click();
       await espera(200);
       continuar();
       return;
