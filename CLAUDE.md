@@ -22,6 +22,7 @@ Descartado: embeber ARCA en un iframe (la política de mismo origen impide compl
 | `datos.js` | Firebase (SDK web 12.4.0 de gstatic, sin build). |
 | `dolar.js` | Dólar actual BNA billete venta: CriptoYa (`bancostodos` → `bna.ask`), si falla DolarApi (`oficial`). |
 | `arca.js` | "Copiar para ARCA" (texto `ARCA-ITEMS1{json}`) + código del marcador (bookmarklet) "Pegar en ARCA". |
+| `pdf.js` + `logo.png` | PDF de cotización guardada (jsPDF 2.5.1 de cdnjs, carga diferida). Logo recortado del fondo de form3. |
 | `excel.js` | Importa la planilla de Diego / exporta copia. SheetJS 0.18.5 de cdnjs, carga diferida. |
 | `firestore.rules` | Diego las pega a mano en la consola. Lista de emails permitidos dentro. |
 | `firebase-config.js` | Config pública; `null` = muestra "falta configurar". |
@@ -88,6 +89,15 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - **Cambiar el cliente de una cotización guardada abierta = cotización nueva** con mismos ítems/precios/fecha
   (la guardada no se toca). Casilla "Corregir el cliente de la Nº…" en el diálogo para editar la existente.
   Pensado para facturar el mismo mantenimiento a varias clínicas: cambiar cliente → Guardar → repetir.
+
+## PDF de cotización
+- Botón 📄 PDF en la lista de cotizaciones y en la cotización guardada abierta (usa lo GUARDADO; avisa si hay cambios).
+- Estilo de la orden de servicio (form3): azul (0,74,146), fondo (245,248,251), recuadros redondeados, logo.
+  Dibujado con jsPDF (no imagen de fondo) → la tabla pagina sola, repite encabezado y numera páginas.
+- Contenido: Nº, fecha de factura, cliente (código + CUIT + condición IVA), Cant. (kg/l si corresponde),
+  Descripción, Precio unit., Total por ítem y TOTAL. "Precios finales en pesos argentinos."
+- Prueba: paso `pdf` / `pdf-largo` en `_prueba/control.js` (intercepta `jsPDF.API.save` y manda el PDF al
+  servidor de prueba → `_prueba/salida.pdf`; ver con `pdftoppm -r 70 -png`).
 
 ## Puente con ARCA (marcador "Pegar en ARCA")
 - "📋 Copiar" (panel o lista) pone en el portapapeles `ARCA-COT1{"c":{cuit,iva},"f":"DD/MM/AAAA","i":[[desc,cant,unidad,precio]]}`.

@@ -483,6 +483,7 @@ function dibujarCotizador() {
     <div class="cot-acciones">
       <button class="btn primario" data-guardar-cot type="button">💾 ${ed ? 'Guardar cambios' : 'Guardar cotización'}</button>
       <button class="btn" data-copiar-arca type="button" title="Copia los ítems para pegarlos en ARCA con el marcador">📋 Copiar para ARCA</button>
+      ${ed ? '<button class="btn" data-pdf-cot type="button" title="Descargar en PDF (lo guardado)">📄 PDF</button>' : ''}
       ${ed && ed.estado !== 'facturada' ? '<button class="btn" data-marcar-facturada type="button">✓ Marcar facturada</button>' : ''}
       <button class="enlace" data-ayuda-arca type="button">¿Cómo se usa?</button>
     </div>` : ''}`;
@@ -645,6 +646,17 @@ async function marcarFacturada(id, facturada = true) {
   }
 }
 
+async function generarPdf(c) {
+  try {
+    aviso('Generando PDF…');
+    const { descargarPdfCotizacion } = await import('./pdf.js');
+    await descargarPdfCotizacion(c);
+  } catch (err) {
+    console.error(err);
+    aviso(err.message || 'No se pudo generar el PDF.');
+  }
+}
+
 function nuevaCotizacion() {
   estado.cotizador = [];
   estado.cotCliente = null;
@@ -695,6 +707,11 @@ $('cotizador').addEventListener('click', (e) => {
   if (t.closest('[data-ayuda-arca]')) return abrirAyudaArca();
   if (t.closest('[data-guardar-cot]')) return guardarCotizacion();
   if (t.closest('[data-marcar-facturada]')) return marcarFacturada(estado.cotEditando.id, true);
+  if (t.closest('[data-pdf-cot]')) {
+    if (estado.cotCambios && !confirm('Hay cambios sin guardar: el PDF va a salir con lo guardado. ¿Seguir? (Para incluirlos, tocá antes "Guardar cambios".)')) return;
+    const c = estado.cotizaciones.find((x) => x.id === estado.cotEditando.id);
+    return c && generarPdf(c);
+  }
   if (t.closest('[data-agregar-libre]')) return abrirItemLibre();
   if (t.closest('[data-cambiar-cliente]')) { estado.cotCambiandoCliente = true; estado.corregirCliente = false; clienteNoEncontrado = ''; dibujarCotizador(); $('cotizador').querySelector('[data-cliente-codigo]')?.focus(); return; }
   if (t.closest('[data-cancelar-cambio]')) { estado.cotCambiandoCliente = false; clienteNoEncontrado = ''; return dibujarCotizador(); }
@@ -905,6 +922,7 @@ function dibujarCotizaciones() {
       <td><div class="acciones-fila">
         <button type="button" class="btn chico primario" data-copiar title="Copiar ítems para el marcador de ARCA">📋 Copiar</button>
         ${c.estado !== 'facturada' ? '<button type="button" class="btn chico" data-facturada>✓ Facturada</button>' : ''}
+        <button type="button" class="btn chico" data-pdf title="Descargar la cotización en PDF">📄 PDF</button>
         <button type="button" class="btn chico" data-abrir>Abrir</button>
         <button type="button" class="quitar" data-borrar title="Borrar cotización" aria-label="Borrar">🗑</button>
       </div></td>
@@ -927,6 +945,7 @@ $('cots-lista').addEventListener('click', async (e) => {
   if (t.closest('[data-copiar]')) {
     return copiarItemsArca((c.items || []).map((it) => ({ descripcion: it.descripcion, cantidad: it.cantidad, unidad: it.unidad, precioUnitario: it.precio })), c.fechaFactura || hoyYMD(), c.cliente);
   }
+  if (t.closest('[data-pdf]')) return generarPdf(c);
   if (t.closest('[data-facturada]')) return marcarFacturada(c.id, true);
   if (t.closest('[data-deshacer]')) return marcarFacturada(c.id, false);
   if (t.closest('[data-abrir]')) {
