@@ -80,6 +80,11 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - Lista "Cotizaciones" (línea de ensamblaje): Pendientes/Facturadas/Todas; por fila: copiar CUIT, 📋 Copiar
   (para el marcador), ✓ Facturada / deshacer, Abrir, borrar.
 - La cotización abierta (líneas, cliente, edición) se recuerda en localStorage `precios.cotizador.v2`.
+- **Fecha de factura** (`fechaFactura` AAAA-MM-DD, local): por defecto hoy; rango hoy−5 … hoy (lo que permite RCEL).
+  Guardadas viejas fuera de rango: en rojo en la lista y aviso al copiar. El marcador NO la completa (va en el paso 1).
+- **Cambiar el cliente de una cotización guardada abierta = cotización nueva** con mismos ítems/precios/fecha
+  (la guardada no se toca). Casilla "Corregir el cliente de la Nº…" en el diálogo para editar la existente.
+  Pensado para facturar el mismo mantenimiento a varias clínicas: cambiar cliente → Guardar → repetir.
 - Pendiente: que el marcador complete también el paso 2 de ARCA (receptor) — Diego quiere verlo después.
 
 ## Puente con ARCA (atajo hasta la etapa 3)
@@ -101,7 +106,7 @@ Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios
 
 ## Pruebas
 `python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|vacio"`
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).

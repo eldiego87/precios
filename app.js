@@ -21,6 +21,7 @@ const estado = {
   cotCliente: null,
   cotEditando: null,
   cotCambios: false,
+  cotFecha: null, // fecha de factura AAAA-MM-DD
   clientes: [],
   cotizaciones: [],
 };
@@ -301,6 +302,13 @@ const centavos = (n) => Math.round(n * 100) / 100;
 const nuevoIdLinea = () => 'f-' + Math.random().toString(36).slice(2, 10);
 const fmtNumero = (n) => 'Nº ' + String(n || 0).padStart(4, '0');
 const fmtCuit = (c) => { const d = String(c || '').replace(/\D/g, ''); return d.length === 11 ? `${d.slice(0, 2)}-${d.slice(2, 10)}-${d.slice(10)}` : d; };
+const dosD = (n) => String(n).padStart(2, '0');
+const aYMD = (d) => `${d.getFullYear()}-${dosD(d.getMonth() + 1)}-${dosD(d.getDate())}`;
+const hoyYMD = () => aYMD(new Date());
+/** ARCA (RCEL) permite fechar el comprobante hasta 5 días antes de hoy. */
+const minFechaYMD = () => { const d = new Date(); d.setDate(d.getDate() - 5); return aYMD(d); };
+const fechaFueraDeRango = (ymd) => !!ymd && (ymd < minFechaYMD() || ymd > hoyYMD());
+const fmtYMD = (ymd) => { if (!ymd) return ''; const [a, m, d] = ymd.split('-'); return `${d}/${m}/${a.slice(2)}`; };
 const fmtDia = (iso) => (iso ? new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '');
 
 function cargarCotizadorGuardado() {
@@ -311,12 +319,13 @@ function cargarCotizadorGuardado() {
     estado.cotCliente = g.cliente || null;
     estado.cotEditando = g.editando || null;
     estado.cotCambios = !!g.cambios;
+    estado.cotFecha = g.fecha || null;
   } catch { /* sin almacenamiento */ }
 }
 function guardarCotizador() {
   try {
     localStorage.setItem(CLAVE_COTIZADOR, JSON.stringify({
-      lineas: estado.cotizador, cliente: estado.cotCliente, editando: estado.cotEditando, cambios: estado.cotCambios,
+      lineas: estado.cotizador, cliente: estado.cotCliente, editando: estado.cotEditando, cambios: estado.cotCambios, fecha: estado.cotFecha,
     }));
   } catch { /* sin almacenamiento */ }
 }
@@ -430,6 +439,10 @@ function dibujarCotizador() {
   const dolarGuardado = ed?.dolar?.valor ? ` · dólar guardado $ ${numero(ed.dolar.valor)} (${fmtDia(ed.fecha)})` : '';
   cont.innerHTML = `
     <div class="cot-cliente">${htmlCliente()}</div>
+    <div class="cot-fecha-fila">
+      <label>Fecha de factura <input type="date" data-fecha value="${esc(estado.cotFecha || hoyYMD())}" min="${minFechaYMD()}" max="${hoyYMD()}"></label>
+      <span class="nota" data-fecha-aviso>${fechaFueraDeRango(estado.cotFecha) ? '<span class="error">ARCA solo acepta hasta 5 días antes de hoy: cambiala antes de facturar.</span>' : 'Hasta 5 días antes de hoy (lo que permite ARCA).'}</span>
+    </div>
     ${hay ? `
     <table class="tabla-cot">
       <thead><tr><th>Cant.</th><th>Ítem</th><th class="num">Costo total</th><th class="num">Precio de venta</th><th></th></tr></thead>
@@ -477,11 +490,13 @@ function actualizarNumerosCotizador() {
 }
 
 // ---- Copiar para ARCA (desde la cotización abierta o desde una guardada)
-async function copiarItemsArca(items) {
+async function copiarItemsArca(items, fechaYMD) {
   const texto = textoParaArca(items);
+  if (fechaYMD && fechaFueraDeRango(fechaYMD)
+    && !confirm(`La fecha de factura (${fmtYMD(fechaYMD)}) está fuera de lo que acepta ARCA (hasta 5 días antes de hoy). En ARCA vas a tener que poner otra. ¿Copiar igual?`)) return;
   try {
     await navigator.clipboard.writeText(texto);
-    aviso(`Copiado: ${items.length} ${items.length === 1 ? 'ítem' : 'ítems'}. En ARCA tocá el marcador "Pegar en ARCA".`);
+    aviso(`Copiado: ${items.length} ${items.length === 1 ? 'ítem' : 'ítems'}${fechaYMD ? ` · fecha ${fmtYMD(fechaYMD)} (ponela en el paso 1 de ARCA)` : ''}. En el paso 3 tocá el marcador.`);
   } catch {
     prompt('Copiá este texto (Ctrl+C) y pegalo cuando el marcador lo pida:', texto);
   }
@@ -494,7 +509,7 @@ async function copiarParaArca() {
   await copiarItemsArca(estado.cotizador.map((l) => {
     const c = calcularLinea(l);
     return { descripcion: c.descripcion, cantidad: l.cantidad, unidad: c.unidad, precioUnitario: c.precioUnitario };
-  }));
+  }), estado.cotFecha || hoyYMD());
 }
 
 async function copiarCuit(cuit) {
@@ -541,6 +556,7 @@ async function guardarCotizacion() {
     id: ed?.id,
     numero,
     fecha: ed?.fecha || ahora,
+    fechaFactura: estado.cotFecha || hoyYMD(),
     estado: ed?.estado || 'pendiente',
     facturadaEn: ed?.facturadaEn || null,
     cliente: estado.cotCliente ? { ...estado.cotCliente } : null,
@@ -573,6 +589,7 @@ function abrirCotizacionGuardada(c, { sinPreguntar = false } = {}) {
     && !confirm('La cotización abierta tiene cambios sin guardar. ¿Descartarlos y abrir la otra?')) return false;
   estado.cotizador = (c.items || []).map((it) => ({ id: nuevoIdLinea(), fija: true, ...it }));
   estado.cotCliente = c.cliente || null;
+  estado.cotFecha = c.fechaFactura || (c.fecha ? aYMD(new Date(c.fecha)) : hoyYMD());
   estado.cotEditando = { id: c.id, numero: c.numero, estado: c.estado, fecha: c.fecha, dolar: c.dolar, facturadaEn: c.facturadaEn || null };
   estado.cotCambios = false;
   guardarCotizador();
@@ -604,12 +621,22 @@ function nuevaCotizacion() {
   estado.cotCliente = null;
   estado.cotEditando = null;
   estado.cotCambios = false;
+  estado.cotFecha = hoyYMD();
   guardarCotizador();
   dibujarLista();
   dibujarCotizador();
 }
 
 // ---- Eventos del panel
+$('cotizador').addEventListener('change', (e) => {
+  if (!e.target.matches('[data-fecha]')) return;
+  const v = e.target.value;
+  if (!v) { e.target.value = estado.cotFecha || hoyYMD(); return; }
+  if (fechaFueraDeRango(v)) { aviso('ARCA permite hasta 5 días antes de hoy, y no fechas futuras.'); e.target.value = estado.cotFecha || hoyYMD(); return; }
+  estado.cotFecha = v;
+  huboCambios();
+  dibujarCotizador();
+});
 $('cotizador').addEventListener('input', (e) => {
   if (!e.target.matches('[data-cantidad]')) return;
   cambiarCantidad(e.target.closest('tr').dataset.id, e.target.value, e.target);
@@ -697,6 +724,10 @@ $('sel-condicion').innerHTML = CONDICIONES_IVA.map((c) => `<option>${esc(c)}</op
 let clienteEditando = null;
 
 function abrirClientes() {
+  const ed = estado.cotEditando;
+  $('cli-corregir-caja').hidden = !ed;
+  $('cli-corregir').checked = false;
+  if (ed) $('cli-corregir-texto').textContent = `Corregir el cliente de la ${fmtNumero(ed.numero)} en lugar de crear una cotización nueva`;
   $('cli-buscar').value = '';
   mostrarListaClientes();
   $('dlg-cliente').showModal();
@@ -733,7 +764,14 @@ function abrirFormCliente(c) {
   fc.nombre.focus();
 }
 function usarCliente(c) {
+  const ed = estado.cotEditando;
+  const cambia = !estado.cotCliente || estado.cotCliente.id !== c.id;
   estado.cotCliente = { id: c.id, nombre: c.nombre, cuit: c.cuit || '', condicionIva: c.condicionIva || '' };
+  if (ed && cambia && !$('cli-corregir').checked) {
+    // Mismos ítems, precios y fecha para otro cliente: queda como cotización nueva; la guardada no se toca.
+    estado.cotEditando = null;
+    aviso(`Cotización nueva para ${c.nombre} con los mismos ítems (la ${fmtNumero(ed.numero)} quedó como estaba). Tocá Guardar.`);
+  }
   huboCambios();
   $('dlg-cliente').close();
   dibujarCotizador();
@@ -801,10 +839,10 @@ function dibujarCotizaciones() {
     return;
   }
   $('cots-lista').innerHTML = `<table class="tabla-cots">
-    <thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th class="num">Ítems</th><th class="num">Total</th><th>Estado</th><th></th></tr></thead>
+    <thead><tr><th>Nº</th><th>Fecha fact.</th><th>Cliente</th><th class="num">Ítems</th><th class="num">Total</th><th>Estado</th><th></th></tr></thead>
     <tbody>${lista.map((c) => `<tr data-cot="${esc(c.id)}" class="${estado.cotEditando?.id === c.id ? 'abierta' : ''}">
       <td class="codigo-num">${esc(fmtNumero(c.numero))}</td>
-      <td>${esc(fmtDia(c.fecha))}</td>
+      <td>${c.fechaFactura ? `<span class="${c.estado !== 'facturada' && fechaFueraDeRango(c.fechaFactura) ? 'error' : ''}" title="${c.estado !== 'facturada' && fechaFueraDeRango(c.fechaFactura) ? 'Fuera del rango de ARCA: cambiala al facturar' : 'Fecha de factura'}">${esc(fmtYMD(c.fechaFactura))}</span>` : esc(fmtDia(c.fecha))}</td>
       <td>${c.cliente ? `<strong>${esc(c.cliente.nombre)}</strong><small>${c.cliente.cuit ? `${esc(fmtCuit(c.cliente.cuit))} <button type="button" class="enlace" data-cuit>copiar</button> · ` : ''}${esc(c.cliente.condicionIva || '')}</small>` : '<span class="nota">sin cliente</span>'}</td>
       <td class="num">${(c.items || []).length}</td>
       <td class="num"><strong>${pesos(c.totales?.venta)}</strong></td>
@@ -834,7 +872,7 @@ $('cots-lista').addEventListener('click', async (e) => {
   const t = e.target;
   if (t.closest('[data-cuit]')) return copiarCuit(c.cliente?.cuit);
   if (t.closest('[data-copiar]')) {
-    return copiarItemsArca((c.items || []).map((it) => ({ descripcion: it.descripcion, cantidad: it.cantidad, unidad: it.unidad, precioUnitario: it.precio })));
+    return copiarItemsArca((c.items || []).map((it) => ({ descripcion: it.descripcion, cantidad: it.cantidad, unidad: it.unidad, precioUnitario: it.precio })), c.fechaFactura);
   }
   if (t.closest('[data-facturada]')) return marcarFacturada(c.id, true);
   if (t.closest('[data-deshacer]')) return marcarFacturada(c.id, false);

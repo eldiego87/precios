@@ -416,3 +416,8 @@ kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--borde); bor
   #btn-cotizaciones { padding: 6px 10px; margin-right: auto; }
   .titulo { display: none; }
 }
+.cot-fecha-fila { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; color: var(--suave); }
+.cot-fecha-fila label { display: flex; align-items: center; gap: 8px; }
+.cot-fecha-fila input[type=date] { font: inherit; font-size: 14px; color: var(--texto); padding: 5px 8px; border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie); }
+.cot-fecha-fila .error { font-size: 13px; }
+.cli-corregir { background: var(--fondo); border-radius: 8px; padding: 8px 10px; }
