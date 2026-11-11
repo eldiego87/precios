@@ -62,7 +62,7 @@ export function normalizar(texto) {
 
 /** Texto donde se busca: código, descripción, categoría y proveedor. */
 export function textoBuscable(p) {
-  return normalizar([p.codigo, p.descripcion, p.categoria, p.proveedor].join(' '));
+  return normalizar([p.codigo, p.descripcion, p.categoria, p.proveedor, p.abono ? 'abono' : ''].join(' '));
 }
 
 /** Todas las palabras de la búsqueda tienen que aparecer (en cualquier orden). */

@@ -428,3 +428,30 @@ kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--borde); bor
 .cliente-entrada .corregir { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--texto); }
 .cliente-no { flex-basis: 100%; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--peligro); }
 .cliente-sel small { display: block; color: var(--suave); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+
+/* ---------- Abonos ---------- */
+.item-desc, .tabla-cot td.item-cot { white-space: pre-line; }
+.etiqueta-abono { font-size: 10px; font-weight: 700; letter-spacing: .04em; color: var(--acento); border: 1px solid var(--acento); border-radius: 4px; padding: 0 4px; }
+.aviso-abono { background: var(--acento-suave); border-radius: 8px; padding: 8px 10px; }
+.abonos-param { display: grid; grid-template-columns: 1.3fr 1fr 1fr auto; gap: 10px; align-items: end; background: var(--fondo); border-radius: 12px; padding: 12px; }
+.abonos-param label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--suave); }
+.abonos-param input, .abono input, .abono select, .abono textarea {
+  font: inherit; font-size: 14px; color: var(--texto); padding: 7px 9px; border: 1px solid var(--borde); border-radius: 8px; background: var(--superficie); width: 100%;
+}
+.abonos-botones { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.abonos-lista { display: flex; flex-direction: column; gap: 10px; max-height: 58vh; overflow-y: auto; }
+.abono { border: 1px solid var(--borde); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.abono.nuevo { border-color: var(--acento); border-style: dashed; }
+.abono-fila { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; }
+.abono label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--suave); }
+.abono textarea { min-height: 84px; resize: vertical; font-family: inherit; }
+.abono-vista { display: grid; grid-template-columns: 1fr auto; gap: 8px 14px; background: var(--acento-suave); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.abono-vista pre { margin: 0; white-space: pre-wrap; font: inherit; }
+.abono-vista strong { font-size: 16px; white-space: nowrap; }
+code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; background: var(--fondo); padding: 0 4px; border-radius: 4px; }
+@media (max-width: 900px) {
+  .abonos-param { grid-template-columns: 1fr 1fr; }
+  .abonos-botones { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; }
+  .abono-fila { grid-template-columns: 1fr 1fr; }
+  .abono-vista { grid-template-columns: 1fr; }
+}

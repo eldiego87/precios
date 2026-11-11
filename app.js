@@ -38,6 +38,7 @@ const estado = {
   corregirCliente: false,
   clientes: [],
   cotizaciones: [],
+  abonoParams: null, // { periodo, fecha, cotizacion } (guardado en la configuración)
 };
 
 // ---------------------------------------------------------------- inicio
@@ -65,6 +66,7 @@ if (!datos.configurado()) {
       estado.cotizacionFecha = config.cotizacionFecha || null;
       estado.cotizacionVia = config.cotizacionVia || null;
       estado.cotizacionFuente = 'guardada';
+      estado.abonoParams = config.abonos || null;
       estado.productos = productos.map(prepararProducto);
       cargarCotizadorGuardado();
       $('usuario-email').textContent = usuario.email;
@@ -222,7 +224,7 @@ function htmlProducto(p) {
     <button class="estrella ${p.favorito ? 'si' : ''}" data-estrella aria-label="${p.favorito ? 'Quitar de' : 'Agregar a'} favoritos" title="Favorito">★</button>
     <div>
       <div class="item-desc">${esc(p.descripcion || '(sin descripción)')}</div>
-      <div class="item-meta"><span class="codigo">${esc(p.codigo)}</span><span>${esc(capitalizar(p.categoria))}</span>${p.proveedor ? `<span>${esc(p.proveedor)}</span>` : ''}</div>
+      <div class="item-meta">${p.abono ? '<span class="etiqueta-abono">ABONO</span>' : ''}<span class="codigo">${esc(p.codigo)}</span><span>${esc(capitalizar(p.categoria))}</span>${p.proveedor ? `<span>${esc(p.proveedor)}</span>` : ''}</div>
     </div>
     <div class="item-precio">
       <div class="item-final">${final}</div>
@@ -977,6 +979,174 @@ $('cots-lista').addEventListener('click', async (e) => {
   }
 });
 
+// ---------------------------------------------------------------- abonos
+// Productos de SERVICIOS con una plantilla de texto ({PERIODO}, {FECHA}, {USD}, {COTIZACION}) y un precio en U$S.
+// "Actualizar valores" completa la plantilla en todos y pone precio final $ = U$S × cotización.
+const fa = $('form-abonos');
+const EJEMPLO_ABONO = {
+  codigo: 'SANCAESTERILIZACION',
+  usdAbono: 127,
+  plantilla: 'Mantenimiento Preventivo del Sistema de Adecuación de Agua para Esterilización correspondiente a {PERIODO}.\nReemplazo de Filtro Post Tratamiento.\nU$S{USD}.- FINAL - Cotización al {FECHA} U$S 1 = ${COTIZACION}',
+};
+const textoNum = (n) => (n == null ? '' : (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100).replace('.', ',')));
+const hoyDMY = () => { const d = new Date(); return `${dosD(d.getDate())}/${dosD(d.getMonth() + 1)}/${d.getFullYear()}`; };
+
+function paramsAbono() {
+  return { periodo: fa.periodo.value.trim(), fecha: fa.fecha.value.trim(), cotizacion: leerNumero(fa.cotizacion.value) };
+}
+function aplicarPlantilla(plantilla, usd, prm) {
+  return String(plantilla || '')
+    .replace(/\{PERIODO\}/gi, prm.periodo || '')
+    .replace(/\{FECHA\}/gi, prm.fecha || '')
+    .replace(/\{USD\}/gi, textoNum(usd))
+    .replace(/\{COTIZACION\}/gi, textoNum(prm.cotizacion));
+}
+/** Campos de producto de un abono con los parámetros dados (precio guardado sin IVA, como todos). */
+function camposAbono(a, prm) {
+  const final = (Number(a.usdAbono) || 0) * (Number(prm.cotizacion) || 0);
+  return {
+    abono: true, plantilla: a.plantilla, usdAbono: Number(a.usdAbono) || 0,
+    descripcion: aplicarPlantilla(a.plantilla, a.usdAbono, prm),
+    categoria: 'SERVICIOS', moneda: 'ARS', precioUSD: null, costoUSD: null, margen: null,
+    precioARS: Math.round((final / (1 + IVA)) * 1e6) / 1e6,
+  };
+}
+
+function abrirAbonos() {
+  const prm = estado.abonoParams || { periodo: 'Octubre 2026', fecha: '02/11/2026', cotizacion: 1570 };
+  fa.periodo.value = prm.periodo || '';
+  fa.fecha.value = prm.fecha || hoyDMY();
+  fa.cotizacion.value = prm.cotizacion ? paraCampo(prm.cotizacion) : '';
+  $('abonos-error').hidden = true;
+  dibujarAbonos();
+  $('dlg-abonos').showModal();
+}
+
+function htmlAbono(a, nuevo = false) {
+  const unidades = UNIDADES.map(([c, n]) => `<option value="${c}" ${Number(a.unidad || 7) === c ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  return `<div class="abono ${nuevo ? 'nuevo' : ''}" data-abono="${esc(a.id || 'nuevo')}">
+    <div class="abono-fila">
+      <label>Código <input data-f="codigo" value="${esc(a.codigo || '')}" autocomplete="off" spellcheck="false"></label>
+      <label>Precio U$S (final) <input data-f="usd" value="${esc(paraCampo(a.usdAbono))}" inputmode="decimal" autocomplete="off"></label>
+      <label>Unidad <select data-f="unidad">${unidades}</select></label>
+    </div>
+    <label>Texto <textarea data-f="plantilla" rows="4" spellcheck="false">${esc(a.plantilla || '')}</textarea></label>
+    <div class="abono-vista"><pre data-vista></pre><strong data-final></strong></div>
+    <div class="acciones">
+      ${nuevo ? '' : '<button type="button" class="btn peligro chico" data-borrar-abono>Borrar</button>'}
+      <span class="espacio"></span>
+      ${nuevo ? '<button type="button" class="btn chico" data-cancelar-abono>Cancelar</button>' : ''}
+      <button type="button" class="btn primario chico" data-guardar-abono>${nuevo ? 'Crear abono' : 'Guardar'}</button>
+    </div>
+  </div>`;
+}
+
+function dibujarAbonos(nuevo = null) {
+  const lista = estado.productos.filter((p) => p.abono).sort((a, b) => a.codigo.localeCompare(b.codigo, 'es'));
+  $('abonos-lista').innerHTML = (nuevo ? htmlAbono(nuevo, true) : '')
+    + (lista.length ? lista.map((a) => htmlAbono(a)).join('') : (nuevo ? '' : '<p class="cot-vacia">Todavía no hay abonos. Tocá "+ Nuevo abono".</p>'));
+  $('abonos-lista').querySelectorAll('[data-abono]').forEach(vistaAbono);
+}
+
+function leerTarjeta(card) {
+  const v = (f) => card.querySelector(`[data-f="${f}"]`).value;
+  return { codigo: v('codigo').trim(), usdAbono: leerNumero(v('usd')), unidad: Number(v('unidad')) || 7, plantilla: v('plantilla').replace(/\r/g, '').trim() };
+}
+function vistaAbono(card) {
+  const a = leerTarjeta(card);
+  const prm = paramsAbono();
+  card.querySelector('[data-vista]').textContent = aplicarPlantilla(a.plantilla, a.usdAbono, prm) || '(sin texto)';
+  card.querySelector('[data-final]').textContent = a.usdAbono && prm.cotizacion ? pesos(a.usdAbono * prm.cotizacion) : '—';
+}
+
+$('btn-abonos').addEventListener('click', abrirAbonos);
+fa.addEventListener('input', (e) => {
+  const card = e.target.closest('[data-abono]');
+  if (card) vistaAbono(card);
+  else $('abonos-lista').querySelectorAll('[data-abono]').forEach(vistaAbono); // cambió un dato común
+});
+$('btn-abono-dolar').addEventListener('click', () => {
+  if (!estado.cotizacion) { aviso('Todavía no hay cotización del dólar.'); return; }
+  fa.fecha.value = hoyDMY();
+  fa.cotizacion.value = paraCampo(estado.cotizacion);
+  $('abonos-lista').querySelectorAll('[data-abono]').forEach(vistaAbono);
+});
+$('btn-abono-nuevo').addEventListener('click', () => {
+  if ($('abonos-lista').querySelector('.abono.nuevo')) return;
+  const hay = estado.productos.some((p) => p.abono);
+  dibujarAbonos(hay ? { plantilla: '', usdAbono: null, unidad: 7 } : { ...EJEMPLO_ABONO, unidad: 7 });
+  $('abonos-lista').querySelector('.abono.nuevo [data-f="codigo"]').focus();
+});
+
+function errorAbonos(m) { $('abonos-error').textContent = m; $('abonos-error').hidden = !m; }
+
+$('abonos-lista').addEventListener('click', async (e) => {
+  const card = e.target.closest('[data-abono]');
+  if (!card) return;
+  const id = card.dataset.abono;
+  if (e.target.closest('[data-cancelar-abono]')) { dibujarAbonos(); return; }
+  if (e.target.closest('[data-borrar-abono]')) {
+    const p = porId(id);
+    if (!p || !confirm(`¿Borrar el abono ${p.codigo}? Las cotizaciones guardadas no cambian.`)) return;
+    try {
+      await datos.borrarProducto(id);
+      estado.productos = estado.productos.filter((x) => x.id !== id);
+      dibujarAbonos(); dibujarTodo();
+    } catch { errorAbonos('No se pudo borrar.'); }
+    return;
+  }
+  if (!e.target.closest('[data-guardar-abono]')) return;
+  const a = leerTarjeta(card);
+  const prm = paramsAbono();
+  if (!a.codigo) return errorAbonos('Escribí el código del abono.');
+  if (!a.plantilla) return errorAbonos('Escribí el texto del abono.');
+  if (!(a.usdAbono > 0)) return errorAbonos('Escribí el precio en U$S.');
+  const repetido = estado.productos.find((x) => x.id !== id && normalizar(x.codigo) === normalizar(a.codigo));
+  if (repetido) return errorAbonos(`Ya existe un producto con el código ${repetido.codigo}.`);
+  if (!(prm.cotizacion > 0)) return errorAbonos('Completá la cotización (U$S 1 = $) arriba.');
+  errorAbonos('');
+  const anterior = id !== 'nuevo' ? porId(id) : null;
+  const producto = {
+    ...(anterior ? { proveedor: anterior.proveedor || '', favorito: !!anterior.favorito } : { proveedor: '', favorito: false }),
+    codigo: a.codigo, unidad: a.unidad, ...camposAbono(a, prm), id: anterior?.id,
+  };
+  try {
+    const nuevoId = await datos.guardarProducto(producto);
+    const guardado = prepararProducto({ ...producto, id: nuevoId });
+    if (anterior) estado.productos[estado.productos.indexOf(anterior)] = guardado; else estado.productos.push(guardado);
+    dibujarAbonos(); dibujarTodo();
+    aviso(`Abono ${a.codigo} guardado.`);
+  } catch (err) { console.error(err); errorAbonos('No se pudo guardar. Revisá la conexión.'); }
+});
+
+$('btn-abonos-actualizar').addEventListener('click', async () => {
+  const prm = paramsAbono();
+  if (!prm.periodo || !prm.fecha) return errorAbonos('Completá el período y la fecha de cotización.');
+  if (!(prm.cotizacion > 0)) return errorAbonos('Completá la cotización (U$S 1 = $).');
+  if ($('abonos-lista').querySelector('.abono.nuevo')) return errorAbonos('Hay un abono nuevo sin crear: creálo o cancelalo primero.');
+  const abonos = estado.productos.filter((p) => p.abono);
+  const boton = $('btn-abonos-actualizar');
+  boton.disabled = true;
+  errorAbonos('');
+  try {
+    await datos.guardarConfig({ abonos: prm });
+    estado.abonoParams = prm;
+    // Toma lo que esté escrito en cada tarjeta (por si se cambió el texto o el precio sin tocar "Guardar").
+    for (const p of abonos) {
+      const card = $('abonos-lista').querySelector(`[data-abono="${CSS.escape(p.id)}"]`);
+      const a = card ? leerTarjeta(card) : p;
+      const nuevo = { ...p, codigo: a.codigo || p.codigo, unidad: a.unidad || p.unidad, ...camposAbono({ plantilla: a.plantilla || p.plantilla, usdAbono: a.usdAbono || p.usdAbono }, prm) };
+      await datos.guardarProducto(nuevo);
+      estado.productos[estado.productos.indexOf(p)] = prepararProducto(nuevo);
+    }
+    dibujarAbonos(); dibujarTodo();
+    aviso(`${abonos.length} ${abonos.length === 1 ? 'abono actualizado' : 'abonos actualizados'}: ${prm.periodo}, U$S 1 = $ ${numero(prm.cotizacion)}.`);
+  } catch (err) {
+    console.error(err);
+    errorAbonos('No se pudo actualizar. Revisá la conexión.');
+  } finally { boton.disabled = false; }
+});
+
 // ---------------------------------------------------------------- menú y diálogos
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-cerrar]')) e.target.closest('dialog').close();
@@ -1076,6 +1246,11 @@ let editando = null; // producto abierto (null = nuevo)
 
 function modoEdicion(activo) {
   $('campos-producto').disabled = !activo;
+  // Abono: texto y precio se manejan desde la pestaña Abonos.
+  const esAbono = !!editando?.abono;
+  $('prod-abono').hidden = !esAbono;
+  ['descripcion', 'precioARS', 'precioARSFinal', 'precioUSD', 'costoUSD', 'margen'].forEach((n) => { fp[n].disabled = esAbono; });
+  fp.querySelectorAll('input[name=moneda]').forEach((r) => { r.disabled = esAbono; });
   $('chk-editar').checked = activo;
   $('btn-guardar').hidden = !activo;
   $('btn-borrar').hidden = !activo || !editando;
@@ -1132,6 +1307,11 @@ function leerFicha() {
     precioARS: moneda === 'ARS' ? (leerNumero(fp.precioARS.value) ?? 0) : null,
     favorito: fp.favorito.checked,
     unidad: Number(fp.unidad.value) || 7,
+    ...(editando?.abono ? {
+      // Un abono conserva texto, precio y plantilla (se editan en Abonos).
+      descripcion: editando.descripcion, moneda: 'ARS', precioARS: editando.precioARS, precioUSD: null,
+      costoUSD: null, margen: null, abono: true, plantilla: editando.plantilla, usdAbono: editando.usdAbono,
+    } : {}),
   };
 }
 
@@ -1280,7 +1460,9 @@ $('form-importar').addEventListener('submit', async (e) => {
     const favs = new Set(estado.productos.filter((p) => p.favorito).map((p) => normalizar(p.codigo)));
     importacion.productos.forEach((p) => { if (favs.has(normalizar(p.codigo))) p.favorito = true; });
 
-    await datos.reemplazarProductos(importacion.productos);
+    // Los abonos no vienen en el Excel: se conservan.
+    const abonos = estado.productos.filter((p) => p.abono).map(({ id, _buscable, ...resto }) => resto);
+    await datos.reemplazarProductos([...importacion.productos, ...abonos]);
     estado.productos = (await datos.cargarProductos()).map(prepararProducto);
     estado.cotizador = estado.cotizador.filter((l) => l.fija); // los ids de productos cambiaron
     guardarCotizador();

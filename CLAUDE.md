@@ -105,6 +105,15 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
 - Prueba: paso `pdf` / `pdf-largo` en `_prueba/control.js` (intercepta `jsPDF.API.save` y manda el PDF al
   servidor de prueba → `_prueba/salida.pdf`; ver con `pdftoppm -r 70 -png`).
 
+## Abonos (pestaña "Abonos")
+- Productos de SERVICIOS con `abono: true`, `plantilla` (texto con `{PERIODO}`, `{FECHA}`, `{USD}`, `{COTIZACION}`,
+  admite saltos de línea) y `usdAbono` (precio U$S final). Datos comunes en config `abonos` {periodo, fecha (texto), cotizacion}.
+- "Actualizar valores": completa la plantilla en TODOS y pone precio final $ = U$S × cotización (se guarda `precioARS`
+  sin IVA = final/1,21 con 6 decimales). Números en el texto: sin separador de miles (ej. "$1570").
+- En la ficha normal, texto y precio de un abono están bloqueados (`leerFicha` conserva los campos de abono).
+- Importar Excel conserva los abonos. Buscar "abono" los encuentra a todos. Saltos de línea: CSS `pre-line`.
+- Primer abono de Diego: SANCAESTERILIZACION (viene precargado como ejemplo si no hay abonos).
+
 ## Puente con ARCA (marcador "Pegar en ARCA")
 - "📋 Copiar" (panel o lista) pone en el portapapeles `ARCA-COT1{"c":{cuit,iva},"f":"DD/MM/AAAA","i":[[desc,cant,unidad,precio]]}`.
   El marcador acepta también el formato viejo `ARCA-ITEMS1` (solo ítems).
@@ -130,7 +139,7 @@ Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios
 
 ## Pruebas
 `python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|serie-reuso|cliente-no|cliente-form|vacio"`
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|serie-reuso|cliente-no|cliente-form|pdf|pdf-largo|ars-final|ars-guardado|abonos|abonos-cot|abonos-ficha|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).

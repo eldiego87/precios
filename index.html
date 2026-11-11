@@ -23,6 +23,7 @@
       <h1 class="titulo">Lista de precios</h1>
       <input id="busqueda" type="search" placeholder="Buscar por código, nombre, categoría o proveedor…  (Esc borra)" autocomplete="off" spellcheck="false">
       <button id="btn-cotizaciones" class="btn" title="Cotizaciones guardadas">Cotizaciones <span id="insignia-pend" class="insignia" hidden></span></button>
+      <button id="btn-abonos" class="btn" title="Abonos: actualizar período, cotización y precios en grupo">Abonos</button>
       <button id="btn-nuevo" class="btn">+ Nuevo producto</button>
       <button id="btn-cotizacion" class="cotizacion" title="Cotización del dólar">
         <span id="cot-etiqueta" class="cot-etiqueta">Dólar BNA</span>
@@ -74,6 +75,7 @@
         <label class="opcion editar" id="lbl-editar"><input type="checkbox" id="chk-editar"> Habilitar edición</label>
       </div>
 
+      <p id="prod-abono" class="nota aviso-abono" hidden>Este producto es un <strong>abono</strong>: el texto y el precio se cambian desde la pestaña <strong>Abonos</strong>.</p>
       <fieldset id="campos-producto" class="campos">
         <div class="grilla">
           <label>Código <input name="codigo" required autocomplete="off"></label>
@@ -229,6 +231,29 @@
         <input id="cots-buscar" type="search" placeholder="Buscar por cliente o número…" autocomplete="off">
       </div>
       <div id="cots-lista"></div>
+    </form>
+  </dialog>
+
+  <!-- Abonos: productos de SERVICIOS con texto y precio que se actualizan en grupo -->
+  <dialog id="dlg-abonos" class="dialogo grande">
+    <form id="form-abonos" method="dialog">
+      <div class="dlg-encabezado">
+        <h2>Abonos</h2>
+        <button type="button" class="btn" data-cerrar>Cerrar</button>
+      </div>
+      <div class="abonos-param">
+        <label>Período <input name="periodo" autocomplete="off" placeholder="Octubre 2026"></label>
+        <label>Fecha de cotización <input name="fecha" autocomplete="off" placeholder="02/11/2026"></label>
+        <label>Cotización: U$S 1 = $ <input name="cotizacion" inputmode="decimal" autocomplete="off" placeholder="1570"></label>
+        <div class="abonos-botones">
+          <button type="button" class="enlace" id="btn-abono-dolar" title="Pone la fecha de hoy y el dólar BNA actual">usar dólar BNA de hoy</button>
+          <button type="button" class="btn primario" id="btn-abonos-actualizar">Actualizar valores</button>
+        </div>
+      </div>
+      <p class="nota">En el texto de cada abono escribí <code>{PERIODO}</code>, <code>{FECHA}</code>, <code>{USD}</code> y <code>{COTIZACION}</code> donde van esos datos. "Actualizar valores" los completa en <strong>todos</strong> los abonos y pone el precio final en pesos = U$S × cotización.</p>
+      <p id="abonos-error" class="error" hidden></p>
+      <div id="abonos-lista" class="abonos-lista"></div>
+      <div class="acciones"><button type="button" class="btn" id="btn-abono-nuevo">+ Nuevo abono</button></div>
     </form>
   </dialog>
 
