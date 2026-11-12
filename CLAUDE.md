@@ -75,6 +75,8 @@ Auth Google, dominios `localhost` + `eldiego87.github.io`. Nunca pasar a Blaze s
   que ARCA trae para el CUIT; default 1; para clientes que comparten CUIT). Colección `clientes`.
 - En la cotización se **escribe el código exacto + Enter** (sin desplegable; compara sin mayúsculas/tildes). Si no existe:
   "Crear cliente" con el código ya puesto. A la vista solo código y CUIT. Carga masiva de clientes: más adelante.
+- Productos con precio 0 = "sin cargo": se muestran "$ 0,00 · sin cargo" y se pueden agregar (ítems que van en
+  la factura pero no se cobran; pedido de Diego 12/11/2026).
 - "+ Agregar ítem" = ítem provisorio (descripción, unidad, cantidad, precio unitario final $), solo para esa cotización.
 - Unidades: solo `unidades` (7), `otras unidades` (98), `kilogramos` (1), `litros` (5). Diego elige a mano por producto.
 - **Guardar cotización** = "pantallazo": colección `cotizaciones` con `numero` (máx+1), `fecha`, `estado`
@@ -140,7 +142,7 @@ Importador: descarta filas "caca*", unifica proveedores por mayúsculas/espacios
 
 ## Pruebas
 `python3 -I _prueba/servidor.py &` y `firefox --headless --window-size=1600,900 --screenshot ~/carpeta/x.png
-"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|serie-reuso|cliente-no|cliente-form|pdf|pdf-largo|ars-final|ars-guardado|abonos|abonos-cot|abonos-ficha|ordenar|vacio"`
+"http://127.0.0.1:8765/_prueba/index.html?paso=lista|importar|buscar|buscar2|ficha|ficha-editar|cotizar|cotizar-cat|dolar|dolar-manual|dolar-falla|movil-cot-lista|movil-cot-abierta|arca|cliente|flujo|flujo-guardado|cots|cots-mov|serie|serie-lista|serie-reuso|cliente-no|cliente-form|pdf|pdf-largo|ars-final|ars-guardado|abonos|abonos-cot|abonos-ficha|ordenar|cero|vacio"`
 (Firefox es snap: guardar capturas en el home, no en /tmp). `_prueba/index.html` se genera desde `index.html`
 (import map + base href): regenerarlo si cambia el HTML. Para frenar el servidor: `kill` por PID
 (no `pkill -f` con la ruta: mata al propio shell).

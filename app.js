@@ -207,7 +207,9 @@ function htmlProducto(p) {
   const sinPrecio = p.moneda === 'ARS' ? !p.precioARS : !p.precioUSD;
   let final, base = '';
   if (sinPrecio) {
-    final = '<span class="sin-precio">sin precio</span>';
+    // Precio 0: ítems que van en la factura pero no se cobran (se pueden agregar igual).
+    final = pesos(0);
+    base = 'sin cargo';
   } else if (p.moneda === 'USD') {
     final = estado.cotizacion ? pesos(precioFinal(p, estado.cotizacion)) : '—';
     base = `${dolares(p.precioUSD * (1 + IVA))} final`;
@@ -219,7 +221,7 @@ function htmlProducto(p) {
   const accion = linea
     ? `<input class="cantidad" data-cantidad value="${esc(paraCampo(linea.cantidad))}" inputmode="decimal" aria-label="Cantidad" title="Cantidad">
        <button class="quitar" data-quitar title="Quitar de la cotización" aria-label="Quitar de la cotización">×</button>`
-    : `<button class="btn chico" data-agregar ${sinPrecio ? 'disabled' : ''}>Agregar</button>`;
+    : '<button class="btn chico" data-agregar>Agregar</button>';
   return `<li class="item ${linea ? 'en-cotizacion' : ''}" data-id="${esc(p.id)}">
     <button class="estrella ${p.favorito ? 'si' : ''}" data-estrella aria-label="${p.favorito ? 'Quitar de' : 'Agregar a'} favoritos" title="Favorito">★</button>
     <div>
